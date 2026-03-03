@@ -1,0 +1,112 @@
+---
+title: Development Environment Setup
+description: Set up your development environment to build Essential from source
+---
+
+Before you can build Essential, you need to set up your development environment with the required tools and dependencies.
+
+## Prerequisites
+
+### Java Development Kits (JDKs)
+
+<Warning>
+  You must install **all four** JDK versions listed below, even if you only want to build for a specific Minecraft version.
+</Warning>
+
+Essential requires the following JDK versions:
+
+- Java 21 (or newer) - **Must be the default Java version on your system**
+- Java 17
+- Java 16
+- Java 8
+
+You can download JDKs from [Adoptium Temurin](https://adoptium.net/temurin/releases/).
+
+<Note>
+  Java 21 (or newer) must be set as your default Java version. The build system will automatically use the other JDK versions as needed for specific Minecraft versions.
+</Note>
+
+### Git
+
+You'll need Git installed to clone the repository and manage submodules.
+
+## Clone the Repository
+
+<Warning>
+  This repository uses [git submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules). You must initialize them after cloning.
+</Warning>
+
+Essential has several submodules that must be initialized:
+- `loader` - Essential Loader
+- `subprojects/pseudotcp/upstream` - Jitsi PseudoTCP library
+
+<Steps>
+  <Step title="Clone with submodules">
+    Clone the repository and initialize all submodules in one command:
+
+    ```bash
+    git clone --recursive https://github.com/EssentialGG/Essential.git
+    cd Essential
+    ```
+  </Step>
+
+  <Step title="Or clone and initialize separately">
+    If you already cloned without `--recursive`, initialize the submodules:
+
+    ```bash
+    git clone https://github.com/EssentialGG/Essential.git
+    cd Essential
+    git submodule update --init --recursive
+    ```
+  </Step>
+
+  <Step title="Update submodules after pulling">
+    <Warning>
+      Run this command every time you pull a new version to keep submodules in sync.
+    </Warning>
+
+    ```bash
+    git submodule update --init --recursive
+    ```
+  </Step>
+</Steps>
+
+## Gradle Wrapper
+
+<Note>
+  No manual Gradle installation is required. The repository includes the Gradle wrapper which will automatically download the correct version.
+</Note>
+
+Essential uses the [Gradle wrapper](https://docs.gradle.org/current/userguide/gradle_wrapper.html) to ensure consistent builds. The wrapper is included in the repository and available via:
+
+- `./gradlew` (Linux/Mac)
+- `gradlew.bat` (Windows)
+
+<Warning>
+  We highly recommend using the Gradle wrapper scripts instead of a local Gradle installation. This ensures you're using the exact same version of Gradle as the official builds. We cannot guarantee that other Gradle versions will work or produce bit-for-bit identical output.
+</Warning>
+
+## Verify Your Setup
+
+To verify your environment is configured correctly:
+
+```bash
+# Check Java version (should be 21 or newer)
+java -version
+
+# Verify Gradle wrapper works
+./gradlew --version
+```
+
+## Next Steps
+
+With your environment set up, you're ready to build Essential:
+
+<CardGroup cols={2}>
+  <Card title="Build Essential Mod" icon="hammer" href="/building/essential-mod">
+    Build Essential for all or specific Minecraft versions
+  </Card>
+  <Card title="Build Essential Loader" icon="download" href="/building/essential-loader">
+    Build the Essential Loader stages and platforms
+  </Card>
+</CardGroup>

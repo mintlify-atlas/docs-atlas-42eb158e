@@ -1,0 +1,201 @@
+---
+title: MinecraftUtils
+description: General Minecraft utility functions for common mod development tasks
+---
+
+The `MinecraftUtils` interface provides a collection of commonly-needed Minecraft utility functions, eliminating the need to copy and paste these functions into your mods.
+
+## Accessing MinecraftUtils
+
+```kotlin
+import gg.essential.api.EssentialAPI
+
+val minecraftUtils = EssentialAPI.getMinecraftUtils()
+```
+
+## Chat Messaging
+
+### sendMessage
+
+<Tabs>
+  <Tab title="Kotlin">
+    ```kotlin
+    // Simple message with [Essential] prefix
+    minecraftUtils.sendMessage("Hello, world!")
+
+    // Custom prefix message
+    minecraftUtils.sendMessage("[MyMod]", "Custom message")
+    ```
+  </Tab>
+  <Tab title="Java">
+    ```java
+    MinecraftUtils utils = EssentialAPI.getMinecraftUtils();
+
+    // Simple message with [Essential] prefix
+    utils.sendMessage("Hello, world!");
+
+    // Custom prefix message
+    utils.sendMessage("[MyMod]", "Custom message");
+    ```
+  </Tab>
+</Tabs>
+
+**Parameters:**
+- `message: String` - The message to display in chat
+- `prefix: String` - Custom prefix for the message (optional)
+
+**Note:** The single-parameter version prefixes messages with `[Essential]` and should only be used for Essential-specific information. For general messages, use `UTextComponent` or the two-parameter version.
+
+### sendChatMessageAndFormat
+
+<Tabs>
+  <Tab title="Kotlin">
+    ```kotlin
+    // Format with I18n
+    minecraftUtils.sendChatMessageAndFormat("mymod.message.key")
+
+    // Format with parameters
+    minecraftUtils.sendChatMessageAndFormat(
+        "mymod.welcome.message",
+        "PlayerName",
+        42
+    )
+    ```
+  </Tab>
+  <Tab title="Java">
+    ```java
+    // Format with I18n
+    utils.sendChatMessageAndFormat("mymod.message.key");
+
+    // Format with parameters
+    utils.sendChatMessageAndFormat(
+        "mymod.welcome.message",
+        "PlayerName",
+        42
+    );
+    ```
+  </Tab>
+</Tabs>
+
+Queues a message to be displayed in chat, translated and formatted using Minecraft's I18n system.
+
+**Parameters:**
+- `message: String` - Message key or text to format
+- `parameters: vararg Any` - Optional formatting parameters
+
+## Server Detection
+
+### isHypixel
+
+```kotlin
+if (minecraftUtils.isHypixel()) {
+    println("Currently on Hypixel!")
+}
+```
+
+**Returns:** `Boolean` - `true` if the player is currently connected to the Hypixel server
+
+## Resource Loading
+
+### getResourceImage
+
+```kotlin
+import net.minecraft.util.ResourceLocation
+import java.awt.image.BufferedImage
+
+val location = ResourceLocation("mymod", "textures/custom.png")
+val image: BufferedImage? = minecraftUtils.getResourceImage(location)
+
+if (image != null) {
+    // Use the image, potentially in a DynamicTexture
+    val width = image.width
+    val height = image.height
+}
+```
+
+Loads a resource location into memory as a `BufferedImage`, useful for creating dynamic textures.
+
+**Parameters:**
+- `location: ResourceLocation` - The resource to load
+
+**Returns:** `BufferedImage?` - The loaded image, or `null` if loading failed
+
+## Development Environment Detection
+
+### isDevelopment
+
+```kotlin
+if (minecraftUtils.isDevelopment()) {
+    println("Running in development environment")
+    // Enable debug features, logging, etc.
+} else {
+    println("Running in production")
+}
+```
+
+**Returns:** `Boolean` - `true` if the game is running in a development environment rather than production
+
+## Method Reference
+
+```kotlin
+interface MinecraftUtils {
+    fun sendMessage(message: String)
+    fun sendMessage(prefix: String, message: String)
+    fun sendChatMessageAndFormat(message: String)
+    fun sendChatMessageAndFormat(message: String, vararg parameters: Any)
+    fun isHypixel(): Boolean
+    fun getResourceImage(location: ResourceLocation): BufferedImage?
+    fun isDevelopment(): Boolean
+}
+```
+
+## Common Use Cases
+
+### Displaying Formatted Chat Messages
+
+```kotlin
+val utils = EssentialAPI.getMinecraftUtils()
+
+// Display a simple notification
+utils.sendMessage("[MyMod]", "Feature enabled!")
+
+// Display a formatted, localized message
+utils.sendChatMessageAndFormat(
+    "mymod.player.joined",
+    playerName,
+    playerCount
+)
+```
+
+### Server-Specific Features
+
+```kotlin
+fun onJoinServer() {
+    val utils = EssentialAPI.getMinecraftUtils()
+    
+    if (utils.isHypixel()) {
+        // Enable Hypixel-specific features
+        enableHypixelStats()
+        utils.sendMessage("[MyMod]", "Hypixel features enabled!")
+    }
+}
+```
+
+### Loading Custom Textures
+
+```kotlin
+import net.minecraft.client.renderer.texture.DynamicTexture
+
+fun loadCustomTexture() {
+    val utils = EssentialAPI.getMinecraftUtils()
+    val resourceLocation = ResourceLocation("mymod", "textures/overlay.png")
+    
+    val image = utils.getResourceImage(resourceLocation)
+    if (image != null) {
+        val dynamicTexture = DynamicTexture(image)
+        // Use the dynamic texture in rendering
+    } else {
+        println("Failed to load texture")
+    }
+}
+```

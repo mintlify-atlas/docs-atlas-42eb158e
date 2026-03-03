@@ -1,0 +1,590 @@
+---
+title: 'Elementa Integration'
+description: 'Using the Elementa UI framework with Essential'
+icon: 'code'
+---
+
+Elementa is a declarative UI framework that Essential uses for all its GUI components. Essential's GUI APIs are built on top of Elementa.
+
+## What is Elementa?
+
+Elementa is a modern, declarative UI framework for Minecraft that provides:
+- Constraint-based layout system
+- Reactive state management
+- Component composition
+- Smooth animations
+- Event handling
+
+## Getting Started
+
+### Adding Elementa
+
+Elementa is included with Essential. Import it in your code:
+
+```kotlin
+import gg.essential.elementa.ElementaVersion
+import gg.essential.elementa.WindowScreen
+import gg.essential.elementa.components.*
+import gg.essential.elementa.constraints.*
+import gg.essential.elementa.dsl.*
+```
+
+### Basic Concepts
+
+#### UIComponent
+
+Everything in Elementa is a `UIComponent`:
+
+```kotlin
+import gg.essential.elementa.components.UIBlock
+import java.awt.Color
+
+val box = UIBlock(Color.RED)
+```
+
+#### Constraints
+
+Constraints define how components are positioned and sized:
+
+```kotlin
+import gg.essential.elementa.dsl.*
+
+box.constrain {
+    x = 10.pixels
+    y = 20.pixels
+    width = 100.pixels
+    height = 50.pixels
+}
+```
+
+#### Parent-Child Relationships
+
+Components are organized in a tree:
+
+```kotlin
+val parent = UIContainer()
+val child = UIBlock(Color.BLUE)
+
+child childOf parent
+// or: parent.addChild(child)
+```
+
+## Elementa Versions
+
+Always specify an `ElementaVersion` for improved behavior:
+
+```kotlin
+import gg.essential.elementa.ElementaVersion
+
+// Use V5 (or latest)
+class MyGUI : EssentialGUI(
+    ElementaVersion.V5,
+    "My GUI"
+)
+```
+
+### Why Versions Matter
+
+- `V0`: Legacy behavior (deprecated)
+- `V1`, `V2`, `V3`, `V4`: Progressive improvements
+- `V5`: Latest, with bug fixes and best practices
+
+Always use the latest version for new code.
+
+## Common Components
+
+### UIBlock
+
+A solid colored rectangle:
+
+```kotlin
+import gg.essential.elementa.components.UIBlock
+import java.awt.Color
+
+val block = UIBlock(Color(0x333333)).constrain {
+    width = 100.pixels
+    height = 100.pixels
+}
+```
+
+### UIText
+
+Rendered text:
+
+```kotlin
+import gg.essential.elementa.components.UIText
+
+val text = UIText("Hello, World!").constrain {
+    x = 10.pixels
+    y = 10.pixels
+}
+```
+
+### UIWrappedText
+
+Text that wraps to fit width:
+
+```kotlin
+import gg.essential.elementa.components.UIWrappedText
+
+val wrappedText = UIWrappedText(
+    "This is a long text that will wrap to multiple lines"
+).constrain {
+    x = 10.pixels
+    y = 10.pixels
+    width = 200.pixels
+}
+```
+
+### UIContainer
+
+A container for other components:
+
+```kotlin
+import gg.essential.elementa.components.UIContainer
+
+val container = UIContainer().constrain {
+    width = 100.percent
+    height = 100.percent
+}
+```
+
+### UIImage
+
+Display images from resources or URLs:
+
+```kotlin
+import gg.essential.elementa.components.UIImage
+import java.net.URL
+
+// From resource
+val icon = UIImage.ofResource("/assets/mymod/icon.png")
+
+// From URL
+val webImage = UIImage.ofURL(URL("https://example.com/image.png"))
+```
+
+## Constraint Types
+
+### Position Constraints
+
+```kotlin
+// Absolute position
+x = 10.pixels
+y = 20.pixels
+
+// Percentage of parent
+x = 50.percent
+y = 25.percent
+
+// Center in parent
+x = CenterConstraint()
+y = CenterConstraint()
+
+// Relative to sibling
+x = SiblingConstraint(padding = 5f)
+
+// Relative to another component
+x = CopyConstraintFloat() boundTo otherComponent
+```
+
+### Size Constraints
+
+```kotlin
+// Absolute size
+width = 100.pixels
+height = 50.pixels
+
+// Percentage of parent
+width = 50.percent
+height = 100.percent
+
+// Based on children
+width = ChildBasedSizeConstraint()
+height = ChildBasedMaxSizeConstraint()
+
+// Fill remaining space
+width = FillConstraint()
+height = FillConstraint()
+
+// Aspect ratio
+width = 200.pixels
+height = AspectConstraint(1f) // 1:1 ratio
+```
+
+### Color Constraints
+
+```kotlin
+import java.awt.Color
+
+color = Color.WHITE.toConstraint()
+color = ConstantColorConstraint(Color.RED)
+```
+
+## Layouts
+
+### Column Layout
+
+Stack components vertically:
+
+```kotlin
+val container = UIContainer().constrain {
+    width = 100.percent
+    height = ChildBasedSizeConstraint()
+}
+
+UIText("First").constrain {
+    y = 0.pixels
+} childOf container
+
+UIText("Second").constrain {
+    y = SiblingConstraint(padding = 5f)
+} childOf container
+
+UIText("Third").constrain {
+    y = SiblingConstraint(padding = 5f)
+} childOf container
+```
+
+### Row Layout
+
+Stack components horizontally:
+
+```kotlin
+val container = UIContainer().constrain {
+    width = ChildBasedSizeConstraint()
+    height = 100.pixels
+}
+
+UIBlock(Color.RED).constrain {
+    x = 0.pixels
+    width = 50.pixels
+    height = 100.percent
+} childOf container
+
+UIBlock(Color.BLUE).constrain {
+    x = SiblingConstraint(padding = 5f)
+    width = 50.pixels
+    height = 100.percent
+} childOf container
+```
+
+### Grid Layout
+
+Create a grid using constraints:
+
+```kotlin
+val grid = UIContainer()
+
+for (row in 0..2) {
+    for (col in 0..2) {
+        UIBlock(Color.GRAY).constrain {
+            x = (col * 60).pixels
+            y = (row * 60).pixels
+            width = 50.pixels
+            height = 50.pixels
+        } childOf grid
+    }
+}
+```
+
+## State Management
+
+Elementa provides reactive state for dynamic UIs:
+
+### BasicState
+
+```kotlin
+import gg.essential.elementa.state.BasicState
+
+val textState = BasicState("Initial Text")
+
+val text = UIText().bindText(textState)
+
+// Update the text
+textState.set("Updated Text")
+```
+
+### Binding to States
+
+```kotlin
+val colorState = BasicState(Color.RED)
+val xState = BasicState(10f)
+
+val block = UIBlock().constrain {
+    x = xState.pixels
+    width = 100.pixels
+    height = 100.pixels
+    color = colorState.toConstraint()
+}
+
+// Changes automatically update the component
+colorState.set(Color.BLUE)
+xState.set(50f)
+```
+
+### Derived States
+
+```kotlin
+val firstNameState = BasicState("John")
+val lastNameState = BasicState("Doe")
+
+val fullNameState = firstNameState.zip(lastNameState).map { (first, last) ->
+    "$first $last"
+}
+
+val text = UIText().bindText(fullNameState)
+```
+
+## Event Handling
+
+### Mouse Events
+
+```kotlin
+import gg.essential.elementa.dsl.onMouseClick
+import gg.essential.elementa.dsl.onMouseEnter
+import gg.essential.elementa.dsl.onMouseLeave
+
+val button = UIBlock(Color.GRAY)
+    .onMouseClick { event ->
+        println("Clicked at ${event.relativeX}, ${event.relativeY}")
+    }
+    .onMouseEnter {
+        setColor(Color.WHITE.toConstraint())
+    }
+    .onMouseLeave {
+        setColor(Color.GRAY.toConstraint())
+    }
+```
+
+### Keyboard Events
+
+```kotlin
+component.onKeyType { typedChar, keyCode ->
+    println("Typed: $typedChar")
+}
+```
+
+## Animations
+
+Elementa supports smooth animations:
+
+```kotlin
+import gg.essential.elementa.dsl.animate
+
+val block = UIBlock(Color.RED).constrain {
+    x = 0.pixels
+    width = 50.pixels
+    height = 50.pixels
+}
+
+block.animate {
+    setXAnimation(Animations.OUT_EXP, 0.5f, 100.pixels)
+    setColorAnimation(Animations.OUT_EXP, 0.5f, Color.BLUE.toConstraint())
+}
+```
+
+## Complete Example
+
+Here's a complete example using Elementa with Essential:
+
+```kotlin
+import gg.essential.api.gui.EssentialGUI
+import gg.essential.elementa.ElementaVersion
+import gg.essential.elementa.components.*
+import gg.essential.elementa.constraints.*
+import gg.essential.elementa.dsl.*
+import gg.essential.elementa.state.BasicState
+import java.awt.Color
+
+class CounterGUI : EssentialGUI(
+    ElementaVersion.V5,
+    "Counter Example"
+) {
+    private val counterState = BasicState(0)
+    
+    init {
+        // Counter display
+        val counterText = UIText().bindText(
+            counterState.map { "Count: $it" }
+        ).constrain {
+            x = CenterConstraint()
+            y = 50.pixels
+        } childOf content
+        
+        // Increment button
+        createButton("Increment", 100.pixels) {
+            counterState.set(counterState.get() + 1)
+        } childOf content
+        
+        // Decrement button
+        createButton("Decrement", 140.pixels) {
+            counterState.set(counterState.get() - 1)
+        } childOf content
+        
+        // Reset button
+        createButton("Reset", 180.pixels) {
+            counterState.set(0)
+        } childOf content
+    }
+    
+    private fun createButton(
+        text: String,
+        yPos: YConstraint,
+        onClick: () -> Unit
+    ): UIComponent {
+        val container = UIContainer().constrain {
+            x = CenterConstraint()
+            y = yPos
+            width = ChildBasedSizeConstraint() + 20.pixels
+            height = ChildBasedSizeConstraint() + 10.pixels
+        }
+        
+        val background = UIBlock(Color(0x333333)).constrain {
+            width = 100.percent
+            height = 100.percent
+        } childOf container
+        
+        UIText(text).constrain {
+            x = CenterConstraint()
+            y = CenterConstraint()
+        } childOf container
+        
+        container
+            .onMouseEnter {
+                background.setColor(Color(0x555555).toConstraint())
+            }
+            .onMouseLeave {
+                background.setColor(Color(0x333333).toConstraint())
+            }
+            .onMouseClick {
+                onClick()
+            }
+        
+        return container
+    }
+}
+```
+
+## Resources
+
+### Official Documentation
+
+- [Elementa GitHub](https://github.com/EssentialGG/Elementa)
+- [Elementa Wiki](https://github.com/EssentialGG/Elementa/wiki)
+
+### Learning Resources
+
+The best way to learn Elementa is by:
+1. Reading the official wiki
+2. Exploring Essential's source code
+3. Experimenting with examples
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Always Use ElementaVersion">
+    Specify `ElementaVersion.V5` (or latest) for new code:
+    ```kotlin
+    EssentialGUI(ElementaVersion.V5, "My GUI")
+    ```
+  </Accordion>
+  
+  <Accordion title="Use DSL Extensions">
+    Use the DSL for cleaner code:
+    ```kotlin
+    // Good
+    x = 10.pixels
+    
+    // Avoid
+    x = PixelConstraint(10f)
+    ```
+  </Accordion>
+  
+  <Accordion title="Leverage State">
+    Use Elementa states for reactive UIs instead of manual updates:
+    ```kotlin
+    val textState = BasicState("Hello")
+    UIText().bindText(textState)
+    ```
+  </Accordion>
+  
+  <Accordion title="Chain Constraints">
+    Use the constrain block to chain all constraints:
+    ```kotlin
+    component.constrain {
+        x = 10.pixels
+        y = 20.pixels
+        width = 100.pixels
+        height = 50.pixels
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Use childOf for Clarity">
+    Use `childOf` for clear parent-child relationships:
+    ```kotlin
+    child childOf parent
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Common Patterns
+
+### Centered Component
+
+```kotlin
+val centered = UIBlock(Color.RED).constrain {
+    x = CenterConstraint()
+    y = CenterConstraint()
+    width = 100.pixels
+    height = 100.pixels
+}
+```
+
+### Responsive Container
+
+```kotlin
+val container = UIContainer().constrain {
+    width = 100.percent
+    height = ChildBasedSizeConstraint()
+}
+```
+
+### Button with Hover Effect
+
+```kotlin
+val button = UIBlock(Color.GRAY)
+    .onMouseEnter { setColor(Color.LIGHT_GRAY.toConstraint()) }
+    .onMouseLeave { setColor(Color.GRAY.toConstraint()) }
+    .onMouseClick { performAction() }
+```
+
+### List of Items
+
+```kotlin
+val list = UIContainer().constrain {
+    width = 100.percent
+    height = ChildBasedSizeConstraint()
+}
+
+items.forEachIndexed { index, item ->
+    createListItem(item).constrain {
+        y = SiblingConstraint(padding = if (index == 0) 0f else 5f)
+    } childOf list
+}
+```
+
+## Related APIs
+
+<CardGroup cols={2}>
+  <Card title="EssentialGUI" icon="window" href="/api/gui/overview">
+    Pre-styled Essential base screen
+  </Card>
+  <Card title="Components" icon="cube" href="/api/gui/components">
+    Pre-built UI components
+  </Card>
+  <Card title="Notifications" icon="bell" href="/api/gui/notifications">
+    Display notifications
+  </Card>
+</CardGroup>

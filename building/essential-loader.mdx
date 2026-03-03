@@ -1,0 +1,148 @@
+---
+title: Building Essential Loader
+description: Build Essential Loader stages and platforms separately
+---
+
+The Essential Loader is the component responsible for loading Essential into Minecraft. It's split into multiple stages and platforms.
+
+<Note>
+  The latest version of Essential Loader is automatically built when [building Essential Mod](/building/essential-mod) because it is included in the `pinned` jar files.
+</Note>
+
+## Loader Architecture
+
+The loader is organized into:
+
+- **Stages**: Three loading stages (stage0, stage1, stage2)
+  - See `loader/docs/stages.md` for details on each stage
+- **Platforms**: Different mod loader environments
+  - See `loader/docs/platforms.md` for platform details
+
+### Available Platforms
+
+Essential Loader supports four platforms:
+
+<AccordionGroup>
+  <Accordion title="fabric - Fabric Mod Loader">
+    For all Minecraft versions using Fabric.
+  </Accordion>
+
+  <Accordion title="launchwrapper - Legacy Forge">
+    For Forge on Minecraft 1.8.9 and 1.12.2.
+  </Accordion>
+
+  <Accordion title="modlauncher8 - Modern Forge (1.16.5)">
+    For Forge on Minecraft 1.16.5.
+  </Accordion>
+
+  <Accordion title="modlauncher9 - Modern Forge (1.17+)">
+    For Forge on Minecraft 1.17 and above.
+  </Accordion>
+</AccordionGroup>
+
+## Build Commands
+
+### Build All Loader Components
+
+When you build Essential Mod, all loader components are built automatically:
+
+```bash
+./gradlew build
+```
+
+### Build Specific Stage and Platform
+
+To build a specific loader stage and platform:
+
+```bash
+./gradlew :loader:<stage>:<platform>:build
+```
+
+#### Examples
+
+<CodeGroup>
+```bash Stage1 - Fabric
+./gradlew :loader:stage1:fabric:build
+```
+
+```bash Stage2 - LaunchWrapper
+./gradlew :loader:stage2:launchwrapper:build
+```
+
+```bash Stage1 - ModLauncher9
+./gradlew :loader:stage1:modlauncher9:build
+```
+</CodeGroup>
+
+## Output Files
+
+Built loader jars are located at:
+
+```
+loader/<stage>/<platform>/build/libs/
+```
+
+### Directory Structure
+
+```
+loader/
+├── stage0/
+│   ├── fabric/build/libs/
+│   ├── launchwrapper/build/libs/
+│   ├── modlauncher8/build/libs/
+│   └── modlauncher9/build/libs/
+├── stage1/
+│   ├── fabric/build/libs/
+│   ├── launchwrapper/build/libs/
+│   ├── modlauncher8/build/libs/
+│   └── modlauncher9/build/libs/
+└── stage2/
+    ├── fabric/build/libs/
+    ├── launchwrapper/build/libs/
+    ├── modlauncher8/build/libs/
+    └── modlauncher9/build/libs/
+```
+
+## Platform Selection Guide
+
+Choose the platform based on your Minecraft version and mod loader:
+
+| Minecraft Version | Mod Loader | Platform |
+|------------------|------------|----------|
+| 1.8.9 | Forge | `launchwrapper` |
+| 1.12.2 | Forge | `launchwrapper` |
+| 1.16.5 | Forge | `modlauncher8` |
+| 1.17+ | Forge | `modlauncher9` |
+| Any | Fabric | `fabric` |
+
+## Understanding Loader Stages
+
+<Warning>
+  Detailed documentation about loader stages is available in `loader/docs/stages.md` within the source repository.
+</Warning>
+
+The three-stage loading system allows Essential to:
+1. Bootstrap early in the game loading process
+2. Handle different mod loader environments
+3. Update itself independently of the container mod
+
+## Checksum Verification
+
+Loader jars are included in the checksum verification process:
+
+```bash
+sha256sum loader/{container,stage{0,1,2}}/{fabric,launchwrapper,modlauncher{8,9}}/build/libs/*
+```
+
+See the [Verification guide](/building/verification) for details on verifying loader checksums.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Build Essential Container" icon="box" href="/building/essential-container">
+    Build thin container mods for distribution
+  </Card>
+  <Card title="Verify Checksums" icon="check" href="/building/verification">
+    Verify your loader builds match official releases
+  </Card>
+</CardGroup>

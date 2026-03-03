@@ -1,0 +1,288 @@
+---
+title: Verifying Checksums
+description: Verify that your build matches official Essential releases
+---
+
+Essential's build system produces deterministic builds, allowing you to verify that the source code matches the distributed binaries.
+
+## Why Verify Checksums?
+
+Checksum verification allows you to:
+- Confirm the source code matches official releases
+- Verify files in your `.minecraft` folder are authentic
+- Ensure third-party distributions haven't been tampered with
+- Build confidence in Essential's transparency commitment
+
+## Obtaining Checksums
+
+There are two ways to obtain checksums for verification:
+
+<AccordionGroup>
+  <Accordion title="Option 1: Build Essential Yourself">
+    [Build Essential from source](/building/essential-mod) to generate jar files locally, then compare them directly to files in your `.minecraft` folder.
+  </Accordion>
+
+  <Accordion title="Option 2: Use GitHub Actions Checksums">
+    Find the corresponding GitHub Actions run for the Essential version and either:
+    - Download the `checksums` artifact (text file)
+    - View the `Generate checksums` log section of the `build` job
+
+    <Warning>
+      GitHub automatically deletes Actions logs and artifacts after some time.
+    </Warning>
+  </Accordion>
+</AccordionGroup>
+
+## Generate Checksums from Your Build
+
+After building Essential, generate checksums for all artifacts:
+
+```bash
+sha256sum versions/*/build/libs/* loader/{container,stage{0,1,2}}/{fabric,launchwrapper,modlauncher{8,9}}/build/libs/* | tee checksums.txt
+```
+
+This command:
+- Generates SHA-256 checksums for all mod and loader files
+- Outputs to both console and `checksums.txt` file
+- Matches the format used by GitHub Actions CI
+
+## Verifying Different File Types
+
+### Files in `.minecraft/mods/`
+
+<Steps>
+  <Step title="Identify the file type">
+    Check the file size:
+
+    **Small file (< 1 MB)**: This is an [Essential Container](/building/essential-container) file.
+    - Usually includes Minecraft version but never Essential version in filename
+    - Determine the platform based on your Minecraft version and mod loader
+    - Find the jar at: `loader/container/<platform>/build/libs/`
+
+    **Large file (several MB)**: This is a pinned distribution file.
+    - Usually includes both Minecraft and Essential version in filename
+    - Find the jar at: `versions/<MC-Version>/build/libs/pinned_*.jar`
+  </Step>
+
+  <Step title="Compare checksums">
+    If you built Essential locally:
+    ```bash
+    # Compare files directly
+    sha256sum ~/.minecraft/mods/Essential*.jar
+    sha256sum versions/1.20.4-fabric/build/libs/pinned_*.jar
+    ```
+
+    If using GitHub Actions checksums:
+    ```bash
+    # Generate checksum of your file
+    sha256sum ~/.minecraft/mods/Essential*.jar
+    # Compare with checksums.txt from GitHub Actions
+    ```
+  </Step>
+</Steps>
+
+### Files in `.minecraft/essential/`
+
+Files named `Essential (<Mod-Loader>_<MC-Version>).jar`:
+
+```bash
+# Find the main Essential jar (not the pinned_ file)
+sha256sum ~/.minecraft/essential/"Essential (fabric_1-20-4).jar"
+# Compare with
+sha256sum versions/1.20.4-fabric/build/libs/Essential*.jar
+```
+
+<Note>
+  Files named `Essential (<Mod-Loader>_<MC-Version>).processed.jar` are temporary files derived from the main jar. If you delete them, they'll be regenerated on next launch.
+</Note>
+
+### Files in `.minecraft/essential/libraries/`
+
+These files are extracted from the main Essential jar:
+- Location in jar: `META-INF/jars/` folder
+- Extracted recursively for nested jars
+- Re-extracted on launch if deleted and still needed
+
+<Note>
+  You would need to extract and verify these from the main Essential jar's `META-INF/jars/` directory.
+</Note>
+
+### Files in `.minecraft/essential/loader/`
+
+<AccordionGroup>
+  <Accordion title="stage1.jar">
+    This file is extracted from either:
+    - The container mod in `.minecraft/mods/`
+    - The main Essential jar in `.minecraft/essential/`
+    - (Whichever has the most recent version)
+
+    Compare with: `loader/stage1/<platform>/build/libs/`
+
+    ```bash
+    sha256sum ~/.minecraft/essential/loader/stage1.jar
+    sha256sum loader/stage1/fabric/build/libs/*.jar
+    ```
+  </Accordion>
+
+  <Accordion title="stage2.<Mod-Loader>_<MC-Version>.jar">
+    Compare with: `loader/stage2/<platform>/build/libs/`
+
+    ```bash
+    sha256sum ~/.minecraft/essential/loader/stage2.fabric_1-20-4.jar
+    sha256sum loader/stage2/fabric/build/libs/*.jar
+    ```
+
+    <Warning>
+      Stage2 is not updated in lockstep with Essential. Its version may be older or newer than your Essential version.
+    </Warning>
+
+    Check the accompanying `.meta` file for the stage2 version:
+    ```bash
+    cat ~/.minecraft/essential/loader/stage2.fabric_1-20-4.jar.meta
+    ```
+
+    You may need to find this specific version in the `loader` repository and build it separately.
+  </Accordion>
+</AccordionGroup>
+
+## Version Aliases
+
+Some Essential versions are compatible with multiple Minecraft versions. Check `versions/aliases.txt` for the exact mapping:
+
+```bash
+cat versions/aliases.txt
+```
+
+Example mappings:
+```
+1.21.10-fabric → 1.21.9-fabric
+1.16.5-forge → 1.16.2-forge
+```
+
+When verifying, compare with the target version listed in `aliases.txt`.
+
+## CI Verification Process
+
+Every Essential release is built twice:
+
+<Steps>
+  <Step title="Internal CI Build">
+    - Faster build on self-hosted infrastructure
+    - Includes integration tests
+    - Uploads jars to Essential infrastructure (not yet published)
+    - Publishes source code to GitHub repository
+  </Step>
+
+  <Step title="GitHub Actions Verification Build">
+    - Builds from publicly accessible source code
+    - Clean GitHub-provided environment
+    - Downloads jars from infrastructure
+    - Verifies bit-for-bit identical match
+    - Logs checksums as artifact
+  </Step>
+</Steps>
+
+### What CI Verifies
+
+<AccordionGroup>
+  <Accordion title="Main Jars (Verified)">
+    The CI verifies checksums of main Essential jars:
+    - `versions/*/build/libs/Essential*.jar` (not pinned)
+
+    These are bit-for-bit compared with jars from infrastructure.
+  </Accordion>
+
+  <Accordion title="Pinned Jars (Not Verified)">
+    Pinned jars are **not** checksum-verified by CI because:
+    - They are deterministically derived from main jars
+    - See: `build-logic/src/main/kotlin/essential/pinned-jar.gradle.kts`
+    - Verifying main jars is sufficient
+    - Re-generated on demand for Modrinth/CurseForge
+
+    However, their checksums **are** printed to the log, so third parties can compare them with Modrinth/CurseForge files at any time.
+  </Accordion>
+</AccordionGroup>
+
+## Computing SHA-256 Checksums
+
+<CodeGroup>
+```bash Linux
+sha256sum file.jar
+```
+
+```bash macOS
+shasum -a 256 file.jar
+```
+
+```powershell Windows (PowerShell)
+Get-FileHash file.jar -Algorithm SHA256
+```
+
+```cmd Windows (certutil)
+certutil -hashfile file.jar SHA256
+```
+</CodeGroup>
+
+## Older Files and Versions
+
+<Warning>
+  If your Essential installation is older, some files may be from before:
+  - Source code was made publicly accessible
+  - Builds were deterministic
+</Warning>
+
+If you have such files and are concerned about their authenticity:
+- Contact Essential team via [Discord](https://essential.gg/discord)
+- They can help verify authenticity of older files
+
+## Mixed Version Files
+
+<Note>
+  Not all files in your `.minecraft` folder are updated at the same time. You may have files from different Essential versions.
+</Note>
+
+When verifying:
+- Check the Essential version in the filename or metadata
+- Find the corresponding GitHub Actions run for that version
+- Some files (like stage2 loader) update independently
+
+## Troubleshooting Verification
+
+<AccordionGroup>
+  <Accordion title="Checksum mismatch">
+    Possible causes:
+    - Wrong Essential version (check filename and metadata)
+    - Modified file
+    - Different build environment
+    - Using wrong platform/version from aliases.txt
+
+    Try:
+    1. Verify you're comparing the correct version
+    2. Check `versions/aliases.txt` for version mappings
+    3. Rebuild with exact Gradle wrapper version
+    4. Check GitHub Actions logs for reference checksums
+  </Accordion>
+
+  <Accordion title="Missing checksums artifact on GitHub">
+    GitHub deletes artifacts after some time. You can:
+    - Build Essential yourself to generate checksums
+    - Contact Essential team for help verifying older versions
+  </Accordion>
+
+  <Accordion title="File not found in expected location">
+    - Check if version is aliased in `versions/aliases.txt`
+    - Verify the platform matches your mod loader
+    - Some files may be in stage1 folder but are actually stage2
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Build Essential Mod" icon="hammer" href="/building/essential-mod">
+    Build Essential to generate your own checksums
+  </Card>
+  <Card title="Development Setup" icon="wrench" href="/building/setup">
+    Set up your environment for building
+  </Card>
+</CardGroup>

@@ -1,0 +1,223 @@
+---
+title: 'Architecture Overview'
+description: 'Understanding Essential Mod project structure and core components'
+keywords: ['architecture', 'project structure', 'components', 'subprojects', 'versioning']
+icon: 'sitemap'
+---
+
+## Project Structure
+
+Essential Mod is built as a multi-module Gradle project with a sophisticated architecture designed to support multiple Minecraft versions and mod loaders simultaneously.
+
+### Directory Layout
+
+```
+Essential/
+├── api/                    # Public API for third-party mods
+├── build-logic/            # Custom Gradle plugins and build logic
+├── elementa/               # UI framework (statev2, layoutdsl)
+├── gui/                    # GUI components (elementa, essential, vigilance)
+├── loader/                 # Essential Loader (submodule)
+├── src/                    # Core mod implementation
+├── subprojects/            # Modular feature implementations
+└── versions/               # Version-specific implementations
+```
+
+## Core Components
+
+Essential is organized into several key layers that work together to provide a seamless cross-version experience.
+
+### Main Module
+
+The `src/main` directory contains the core Essential Mod implementation:
+
+<CodeGroup>
+```text Core directories
+src/main/
+├── java/
+│   ├── gg/essential/
+│   │   ├── Essential.java           # Main mod entry point
+│   │   ├── api/tweaker/             # Tweaker integration
+│   │   ├── asm/                     # Bytecode transformers
+│   │   ├── commands/                # Command implementations
+│   │   ├── cosmetics/               # Cosmetics system
+│   │   └── ...
+```
+</CodeGroup>
+
+<Note>
+The core module is shared across all Minecraft versions. Version-specific code is isolated in the `versions/` directory.
+</Note>
+
+### Subprojects
+
+Essential uses a modular architecture with specialized subprojects:
+
+<Accordion title="Core subprojects">
+
+| Subproject | Purpose |
+|------------|----------|
+| `classloaders` | Custom class loading utilities |
+| `clipboard` | Cross-platform clipboard support |
+| `cosmetics` | Cosmetics rendering and management |
+| `feature-flags` | Feature flag system for gradual rollouts |
+| `ice` | ICE (Interactive Connectivity Establishment) for P2P |
+| `immediatelyfast` | Performance optimizations (1.18+) |
+| `infra` | Infrastructure and networking |
+| `kdiscordipc` | Discord Rich Presence integration |
+| `libs` | Bundled third-party libraries |
+| `lwjgl3` | LWJGL3 support for older versions |
+| `minecraft-auth` | Authentication system |
+| `plasmo` | Voice chat integration |
+| `pseudotcp` | Pseudo-TCP over UDP |
+| `quic-connector` | QUIC protocol support |
+| `slf4j-to-log4j` | SLF4J adapter for MC < 1.19.3 |
+| `utils` | Utility classes and helpers |
+| `vigilance2` | Settings UI framework |
+
+</Accordion>
+
+Each subproject is self-contained and can be built independently, promoting code reusability and maintainability.
+
+### API Layer
+
+The `api/` directory provides a stable public API for third-party mods:
+
+```java Example: Using Essential API
+import gg.essential.api.EssentialAPI;
+
+public class MyMod {
+    public void init() {
+        // Check if Essential is loaded
+        if (EssentialAPI.getMinecraftUtil().isRunningEssential()) {
+            // Use Essential features
+        }
+    }
+}
+```
+
+<Info>
+The API is versioned per Minecraft version to ensure compatibility. See `versions/api/` for version-specific implementations.
+</Info>
+
+### GUI Framework
+
+Essential includes a sophisticated GUI system:
+
+<Columns cols={2}>
+  <Card title="Elementa" icon="window">
+    A declarative UI framework with layout DSL for building modern interfaces.
+  </Card>
+  <Card title="Vigilance" icon="sliders">
+    Settings and configuration UI framework with automatic serialization.
+  </Card>
+</Columns>
+
+### Build System
+
+The `build-logic/` directory contains custom Gradle plugins:
+
+<AccordionGroup>
+  <Accordion title="embedded-loader.gradle.kts">
+    Embeds Essential Loader into the mod JAR. This plugin handles bundling the appropriate loader stage files for each platform.
+  </Accordion>
+  
+  <Accordion title="pinned-jar.gradle.kts">
+    Creates "pinned" JAR files for Modrinth/CurseForge distribution. These JARs contain a specific version of Essential, unlike container mods which download the latest version.
+  </Accordion>
+  
+  <Accordion title="gg.essential.multi-version">
+    Manages multi-version support and mappings transformation. Handles the complex process of maintaining a single codebase across multiple Minecraft versions.
+  </Accordion>
+</AccordionGroup>
+
+## Version-Specific Code
+
+The `versions/` directory contains code specific to each Minecraft version and loader combination:
+
+```text Version structure
+versions/
+├── 1.8.9-forge/
+│   └── src/main/java/gg/essential/mixins/
+├── 1.12.2-forge/
+├── 1.16.2-fabric/
+├── 1.16.2-forge/
+├── ...
+├── 1.21.11-fabric/
+└── aliases.txt          # Version aliases mapping
+```
+
+<Tip>
+Most version directories only contain mixins and compatibility patches. The bulk of the code is shared in the main module.
+</Tip>
+
+### Version Aliases
+
+Some Essential versions are compatible with multiple Minecraft versions. The `aliases.txt` file maps compatible versions:
+
+```text versions/aliases.txt
+1.21.10-fabric → 1.21.9-fabric
+1.16.5-forge → 1.16.2-forge
+```
+
+This allows Essential to support more Minecraft versions without duplicating code.
+
+## Build Outputs
+
+Essential produces different types of artifacts for different use cases:
+
+<Steps>
+  <Step title="Main JAR">
+    The standard Essential JAR found in `versions/<MC-Version>/build/libs/Essential (<Loader>_<MC-Version>).jar`. This is downloaded by the Essential Loader and used for in-game updates.
+  </Step>
+  
+  <Step title="Pinned JAR">
+    Prefixed with `pinned_`, this JAR includes a specific version of Essential Loader and is distributed via Modrinth/CurseForge. Users install this directly in their mods folder.
+  </Step>
+  
+  <Step title="Container JAR">
+    A minimal JAR (< 1MB) that downloads the latest Essential on first launch. Found in `loader/container/<platform>/build/libs/`.
+  </Step>
+</Steps>
+
+## Architecture Benefits
+
+This architecture provides several key advantages:
+
+<CardGroup cols={2}>
+  <Card title="Code Reuse" icon="recycle">
+    Shared core implementation across all versions minimizes duplication and maintenance burden.
+  </Card>
+  
+  <Card title="Modularity" icon="cubes">
+    Subprojects can be developed, tested, and updated independently.
+  </Card>
+  
+  <Card title="Flexibility" icon="wand-magic-sparkles">
+    Version-specific directories allow targeted fixes without affecting other versions.
+  </Card>
+  
+  <Card title="Scalability" icon="up-right-and-down-left-from-center">
+    Easy to add support for new Minecraft versions and mod loaders.
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Multi-Version Support" icon="layer-group" href="/concepts/multi-version">
+    Learn how Essential supports Minecraft 1.8.9 through 1.21.x
+  </Card>
+  
+  <Card title="Loader Stages" icon="stairs" href="/concepts/loader-stages">
+    Understand the three-stage loader architecture
+  </Card>
+  
+  <Card title="Platform Support" icon="puzzle-piece" href="/concepts/platforms">
+    Explore support for Forge, Fabric, and NeoForge
+  </Card>
+  
+  <Card title="Building Essential" icon="hammer" href="/building/essential-mod">
+    Get started building Essential from source
+  </Card>
+</CardGroup>

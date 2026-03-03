@@ -1,0 +1,116 @@
+---
+title: "Command System Overview"
+description: "Essential's powerful annotation-based command system for creating custom commands"
+---
+
+Essential's Command API provides a powerful, annotation-based system for creating custom commands with automatic argument parsing. The main selling point of this API is that all command arguments are automatically described by the parameters to your handler functions.
+
+## Key Features
+
+- **Automatic Argument Parsing**: Command arguments are defined by function parameters
+- **Type Safety**: Built-in support for primitives (Int, Boolean, String, etc.)
+- **Subcommands**: Easy creation of nested command structures
+- **Optional Arguments**: Support for nullable types in Kotlin and `Optional` in Java
+- **Custom Parsers**: Extensible argument parsing system
+- **Auto-generated Help**: Automatic help subcommand generation
+- **Tab Completion**: Built-in tab completion support
+
+## Basic Structure
+
+To create a command, extend the `Command` class:
+
+```kotlin
+object MyCommand : Command("mycommand") {
+    @DefaultHandler
+    fun handle() {
+        // Called when user types /mycommand
+    }
+}
+```
+
+Then register it:
+
+```kotlin
+MyCommand.register()
+```
+
+## Command Components
+
+### Default Handler
+
+A function annotated with `@DefaultHandler` is invoked when the command is called with no subcommands:
+
+```kotlin
+@DefaultHandler
+fun handle() {
+    // Handle /mycommand
+}
+```
+
+### Subcommands
+
+Functions annotated with `@SubCommand` create subcommands:
+
+```kotlin
+@SubCommand("reload")
+fun reload() {
+    // Handle /mycommand reload
+}
+```
+
+### Arguments
+
+Arguments are defined by function parameters:
+
+```kotlin
+@DefaultHandler
+fun handle(number: Int, message: String?) {
+    // number is required, message is optional
+}
+```
+
+## Constructor Parameters
+
+When creating a command, you can configure:
+
+- `name`: The command name (required)
+- `autoHelpSubcommand`: Generate automatic help subcommand (default: `true`)
+- `hideFromAutocomplete`: Hide from tab completion (default: `false`)
+
+```kotlin
+object MyCommand : Command(
+    name = "mycommand",
+    autoHelpSubcommand = true,
+    hideFromAutocomplete = false
+)
+```
+
+## Command Aliases
+
+You can define global aliases for your command:
+
+```kotlin
+object MyCommand : Command("mycommand") {
+    override val commandAliases = setOf(
+        Alias("mc"),
+        Alias("mycmd", hideFromAutocomplete = true)
+    )
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Creating Commands" icon="code" href="/api/commands/creating-commands">
+    Learn how to create your first command
+  </Card>
+  <Card title="Arguments" icon="terminal" href="/api/commands/arguments">
+    Understand the argument parsing system
+  </Card>
+  <Card title="Subcommands" icon="sitemap" href="/api/commands/subcommands">
+    Create complex command hierarchies
+  </Card>
+  <Card title="Registry" icon="database" href="/api/commands/registry">
+    Register commands and custom parsers
+  </Card>
+</CardGroup>

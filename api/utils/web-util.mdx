@@ -1,0 +1,307 @@
+---
+title: WebUtil
+description: Utility for fetching data from the internet
+---
+
+`WebUtil` is an object utility that provides simple methods for fetching data from the internet, including JSON, strings, and file downloads.
+
+## Accessing WebUtil
+
+```kotlin
+import gg.essential.api.utils.WebUtil
+
+// WebUtil is an object, use it directly
+val json = WebUtil.fetchJSON("https://api.example.com/data")
+```
+
+```java
+import gg.essential.api.utils.WebUtil;
+
+// Use static methods in Java
+JsonHolder json = WebUtil.fetchJSON("https://api.example.com/data");
+```
+
+## Configuration
+
+### Logging
+
+Enable or disable logging for WebUtil operations:
+
+```kotlin
+// Enable logging
+WebUtil.LOG = true
+
+// Disable logging (default)
+WebUtil.LOG = false
+```
+
+When enabled, WebUtil logs fetching operations and errors to the console.
+
+## Fetching Data
+
+### fetchJSON
+
+Fetch and parse JSON data from a URL.
+
+<Tabs>
+  <Tab title="Kotlin">
+    ```kotlin
+    import gg.essential.api.utils.WebUtil
+
+    val json = WebUtil.fetchJSON("https://api.example.com/data")
+    
+    // Access JSON data
+    val value = json.optString("key")
+    val number = json.optInt("count")
+    val nested = json.optJSONObject("nested")
+    ```
+  </Tab>
+  <Tab title="Java">
+    ```java
+    import gg.essential.api.utils.WebUtil;
+    import gg.essential.api.utils.JsonHolder;
+
+    JsonHolder json = WebUtil.fetchJSON("https://api.example.com/data");
+    
+    // Access JSON data
+    String value = json.optString("key");
+    int number = json.optInt("count");
+    JsonHolder nested = json.optJSONObject("nested");
+    ```
+  </Tab>
+</Tabs>
+
+**Parameters:**
+- `url: String` - The URL to fetch JSON from
+
+**Returns:** `JsonHolder` - A JsonHolder object containing the parsed JSON data
+
+**Notes:**
+- Spaces in URLs are automatically escaped to `%20`
+- Returns a valid JsonHolder even if the request fails (check for error states)
+- Uses Mozilla user agent for compatibility
+
+### fetchString
+
+Fetch the content of a web page as a string.
+
+```kotlin
+import gg.essential.api.utils.WebUtil
+
+val html = WebUtil.fetchString("https://example.com/page.html")
+if (html != "Failed to fetch") {
+    println("Page content: $html")
+}
+```
+
+**Parameters:**
+- `url: String` - The URL to fetch
+
+**Returns:** `String?` - The page content, or `"Failed to fetch"` if the request fails
+
+**Features:**
+- Automatically escapes spaces in URLs
+- Uses default system charset for decoding
+- 15-second connection and read timeout
+
+### downloadToFile
+
+Download a file from the internet and save it to disk.
+
+```kotlin
+import gg.essential.api.utils.WebUtil
+import java.io.File
+
+val outputFile = File("downloads/image.png")
+val url = "https://example.com/image.png"
+
+try {
+    WebUtil.downloadToFile(
+        url = url,
+        file = outputFile,
+        userAgent = "MyMod/1.0"
+    )
+    println("Download complete: ${outputFile.absolutePath}")
+} catch (e: IOException) {
+    println("Download failed: ${e.message}")
+}
+```
+
+**Parameters:**
+- `url: String` - The URL of the file to download
+- `file: File` - The destination file path
+- `userAgent: String` - User agent string to use for the request
+
+**Throws:** `IOException` - If the download fails
+
+**Features:**
+- Buffered reading and writing for efficiency
+- Customizable user agent
+- 1024-byte buffer size for optimal performance
+
+## Object Reference
+
+```kotlin
+object WebUtil {
+    var LOG: Boolean  // Enable/disable logging (default: false)
+    
+    fun fetchJSON(url: String): JsonHolder
+    fun fetchString(url: String): String?
+    fun downloadToFile(url: String, file: File, userAgent: String)
+}
+```
+
+## Common Use Cases
+
+### Fetching API Data
+
+```kotlin
+import gg.essential.api.utils.WebUtil
+
+fun fetchServerStatus(): ServerStatus? {
+    val json = WebUtil.fetchJSON("https://api.example.com/server/status")
+    
+    return if (json.has("online")) {
+        ServerStatus(
+            online = json.optBoolean("online"),
+            playerCount = json.optInt("players"),
+            maxPlayers = json.optInt("max_players")
+        )
+    } else {
+        null  // Request failed
+    }
+}
+
+data class ServerStatus(
+    val online: Boolean,
+    val playerCount: Int,
+    val maxPlayers: Int
+)
+```
+
+### Downloading Resources
+
+```kotlin
+import gg.essential.api.utils.WebUtil
+import java.io.File
+
+fun downloadModAssets() {
+    val assetsDir = File("mods/mymod/assets")
+    assetsDir.mkdirs()
+    
+    val assets = listOf(
+        "background.png",
+        "icon.png",
+        "config.json"
+    )
+    
+    assets.forEach { asset ->
+        try {
+            WebUtil.downloadToFile(
+                url = "https://cdn.example.com/assets/$asset",
+                file = File(assetsDir, asset),
+                userAgent = "MyMod/1.0.0"
+            )
+            println("Downloaded: $asset")
+        } catch (e: IOException) {
+            println("Failed to download $asset: ${e.message}")
+        }
+    }
+}
+```
+
+### Async Web Requests
+
+```kotlin
+import gg.essential.api.utils.WebUtil
+import gg.essential.api.utils.Multithreading
+
+fun fetchDataAsync(callback: (JsonHolder) -> Unit) {
+    Multithreading.runAsync {
+        val data = WebUtil.fetchJSON("https://api.example.com/data")
+        callback(data)
+    }
+}
+
+// Usage
+fetchDataAsync { json ->
+    val version = json.optString("version")
+    println("Latest version: $version")
+}
+```
+
+### Parsing HTML Content
+
+```kotlin
+import gg.essential.api.utils.WebUtil
+
+fun scrapeWebPage() {
+    val html = WebUtil.fetchString("https://example.com/page.html")
+    
+    if (html != null && html != "Failed to fetch") {
+        // Parse HTML content
+        val titleMatch = Regex("<title>(.*?)</title>").find(html)
+        val title = titleMatch?.groupValues?.get(1)
+        
+        println("Page title: $title")
+    }
+}
+```
+
+### Fetching with Error Handling
+
+```kotlin
+import gg.essential.api.utils.WebUtil
+
+fun safelyFetchJSON(url: String): JsonHolder? {
+    return try {
+        WebUtil.LOG = true  // Enable logging for debugging
+        val json = WebUtil.fetchJSON(url)
+        
+        // Check if the JSON contains an error indicator
+        if (json.has("error")) {
+            println("API returned error: ${json.optString("error")}")
+            null
+        } else {
+            json
+        }
+    } catch (e: Exception) {
+        println("Exception fetching JSON: ${e.message}")
+        null
+    } finally {
+        WebUtil.LOG = false  // Disable logging
+    }
+}
+```
+
+### Downloading with Progress
+
+```kotlin
+import gg.essential.api.utils.WebUtil
+import java.io.File
+import java.net.URL
+
+fun downloadWithProgress(url: String, outputFile: File) {
+    try {
+        val connection = URL(url).openConnection()
+        val totalSize = connection.contentLength
+        
+        // Use WebUtil's download method
+        WebUtil.downloadToFile(url, outputFile, "MyMod/1.0")
+        
+        println("Downloaded ${totalSize} bytes to ${outputFile.name}")
+    } catch (e: Exception) {
+        println("Download failed: ${e.message}")
+    }
+}
+```
+
+## Notes
+
+- WebUtil automatically handles URL encoding for spaces
+- All methods use a 15-second timeout for connections
+- The default user agent is "Mozilla/4.76 (Essential)"
+- Failed fetch operations print errors to console when `LOG` is enabled
+- `fetchString` returns `"Failed to fetch"` on error rather than throwing exceptions
+- Always check return values for error conditions
+- For production use, consider adding retry logic for network requests

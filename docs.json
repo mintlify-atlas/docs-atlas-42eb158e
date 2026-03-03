@@ -1,122 +1,127 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "Essential Mod",
+  "theme": "palm",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#5865F2",
+    "light": "#7289DA",
+    "dark": "#4752C4"
   },
-  "favicon": "/favicon.svg",
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/SparkUniverse/Essential-Mod"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/SparkUniverse/Essential-Mod"
+    }
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Documentation",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Get Started",
             "pages": [
-              "index",
-              "quickstart",
-              "development"
+              "introduction",
+              "installation",
+              "quickstart"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Building",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
+              "building/setup",
+              "building/essential-mod",
+              "building/essential-loader",
+              "building/essential-container",
+              "building/verification"
             ]
           },
           {
-            "group": "Writing content",
+            "group": "Core Concepts",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
-            ]
-          },
-          {
-            "group": "AI tools",
-            "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "concepts/architecture",
+              "concepts/multi-version",
+              "concepts/loader-stages",
+              "concepts/platforms"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "API Reference",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Getting Started",
             "pages": [
-              "api-reference/introduction"
+              "api/overview",
+              "api/setup"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "Core API",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "api/essential-api",
+              "api/dependency-injection"
+            ]
+          },
+          {
+            "group": "Commands",
+            "pages": [
+              "api/commands/overview",
+              "api/commands/creating-commands",
+              "api/commands/arguments",
+              "api/commands/subcommands",
+              "api/commands/registry"
+            ]
+          },
+          {
+            "group": "GUI",
+            "pages": [
+              "api/gui/overview",
+              "api/gui/notifications",
+              "api/gui/components",
+              "api/gui/elementa"
+            ]
+          },
+          {
+            "group": "Utilities",
+            "pages": [
+              "api/utils/minecraft-utils",
+              "api/utils/gui-util",
+              "api/utils/mojang-api",
+              "api/utils/web-util",
+              "api/utils/multithreading"
+            ]
+          },
+          {
+            "group": "Other APIs",
+            "pages": [
+              "api/cosmetics",
+              "api/config",
+              "api/onboarding"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Resources",
+        "groups": [
+          {
+            "group": "Additional Info",
+            "pages": [
+              "resources/license",
+              "resources/ci",
+              "resources/changelog",
+              "resources/support"
             ]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
+    ]
   }
 }

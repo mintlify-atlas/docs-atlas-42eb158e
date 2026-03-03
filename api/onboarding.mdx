@@ -1,0 +1,187 @@
+---
+title: "OnboardingData"
+description: "Access the player's Essential TOS acceptance status"
+---
+
+## Overview
+
+The `OnboardingData` interface provides utility methods for checking whether a player has accepted or denied Essential's Terms of Service (TOS). This is useful for determining if the player has completed the Essential onboarding process.
+
+## Interface Definition
+
+```kotlin
+package gg.essential.api.data
+
+interface OnboardingData {
+    /**
+     * @return has the player accepted our TOS.
+     */
+    fun hasAcceptedEssentialTOS(): Boolean
+
+    /**
+     * @return has the player denied our TOS.
+     */
+    fun hasDeniedEssentialTOS(): Boolean
+}
+```
+
+## Methods
+
+<ParamField path="hasAcceptedEssentialTOS()" type="Boolean">
+  Returns `true` if the player has accepted Essential's Terms of Service, `false` otherwise.
+</ParamField>
+
+<ParamField path="hasDeniedEssentialTOS()" type="Boolean">
+  Returns `true` if the player has denied Essential's Terms of Service, `false` otherwise.
+</ParamField>
+
+## Usage Examples
+
+### Checking TOS Status
+
+```java
+import gg.essential.api.EssentialAPI;
+import gg.essential.api.data.OnboardingData;
+
+public class OnboardingExample {
+    public void checkTOSStatus() {
+        OnboardingData onboarding = EssentialAPI.getOnboardingData();
+        
+        if (onboarding.hasAcceptedEssentialTOS()) {
+            System.out.println("Player has accepted the TOS");
+            // Player can use Essential features
+        } else if (onboarding.hasDeniedEssentialTOS()) {
+            System.out.println("Player has denied the TOS");
+            // Player has opted out
+        } else {
+            System.out.println("Player has not responded to TOS yet");
+            // Player may still be in onboarding
+        }
+    }
+}
+```
+
+### Feature Gating Based on TOS
+
+```java
+import gg.essential.api.EssentialAPI;
+import gg.essential.api.data.OnboardingData;
+
+public class FeatureGate {
+    public boolean canUseEssentialFeatures() {
+        OnboardingData onboarding = EssentialAPI.getOnboardingData();
+        return onboarding.hasAcceptedEssentialTOS();
+    }
+    
+    public void tryUseFeature() {
+        if (canUseEssentialFeatures()) {
+            // Enable Essential integration
+            enableEssentialFeatures();
+        } else {
+            // Disable or hide Essential features
+            System.out.println("Essential features not available");
+        }
+    }
+    
+    private void enableEssentialFeatures() {
+        // Your feature implementation
+    }
+}
+```
+
+### Kotlin Example
+
+```kotlin
+import gg.essential.api.EssentialAPI
+
+fun checkOnboardingStatus() {
+    val onboarding = EssentialAPI.getOnboardingData()
+    
+    when {
+        onboarding.hasAcceptedEssentialTOS() -> {
+            println("Player accepted TOS - full features available")
+            enableAllFeatures()
+        }
+        onboarding.hasDeniedEssentialTOS() -> {
+            println("Player denied TOS - limited mode")
+            disableEssentialIntegration()
+        }
+        else -> {
+            println("TOS status pending")
+            showOnboardingPrompt()
+        }
+    }
+}
+```
+
+### Integration with Mod Initialization
+
+```java
+import gg.essential.api.EssentialAPI;
+import gg.essential.api.data.OnboardingData;
+
+public class MyMod {
+    private boolean essentialIntegrationEnabled = false;
+    
+    public void init() {
+        OnboardingData onboarding = EssentialAPI.getOnboardingData();
+        
+        if (onboarding.hasAcceptedEssentialTOS()) {
+            essentialIntegrationEnabled = true;
+            initializeEssentialFeatures();
+            System.out.println("Essential integration enabled");
+        } else {
+            System.out.println("Running in standalone mode");
+        }
+    }
+    
+    private void initializeEssentialFeatures() {
+        // Register Essential-specific features
+        // Set up cosmetics, notifications, etc.
+    }
+}
+```
+
+## TOS States
+
+There are three possible states for a player's TOS status:
+
+<Card title="Accepted" icon="check">
+  `hasAcceptedEssentialTOS()` returns `true`
+  
+  Player has agreed to the Terms of Service and can use all Essential features.
+</Card>
+
+<Card title="Denied" icon="xmark">
+  `hasDeniedEssentialTOS()` returns `true`
+  
+  Player has explicitly declined the Terms of Service and Essential features should be disabled.
+</Card>
+
+<Card title="Pending" icon="clock">
+  Both methods return `false`
+  
+  Player has not yet responded to the TOS prompt. They may still be in the onboarding process.
+</Card>
+
+## Best Practices
+
+<Tip>
+  Always check the TOS status before enabling Essential-specific features in your mod to respect user preferences.
+</Tip>
+
+<Warning>
+  Do not attempt to bypass or override the TOS status. Respect the player's decision regarding Essential's Terms of Service.
+</Warning>
+
+<Info>
+  The TOS status is persistent and stored with the player's Essential data. You don't need to cache this value yourself.
+</Info>
+
+## Common Use Cases
+
+- **Feature Gating**: Enable or disable Essential integration based on TOS acceptance
+- **Initialization Logic**: Determine which features to initialize at mod startup
+- **UI Customization**: Show or hide Essential-related UI elements
+- **Compatibility Checks**: Ensure proper mod behavior when Essential is present but not fully accepted
+- **Analytics**: Track which players have Essential enabled vs. disabled

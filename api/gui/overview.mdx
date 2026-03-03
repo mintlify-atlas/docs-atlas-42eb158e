@@ -1,0 +1,195 @@
+---
+title: 'GUI System'
+description: 'Overview of Essential GUI system and components'
+icon: 'window'
+---
+
+The Essential GUI API provides powerful tools for creating modern, user-friendly interfaces in Minecraft mods using the Elementa framework.
+
+## Features
+
+### Core Components
+
+<CardGroup cols={2}>
+  <Card title="Notifications" icon="bell" href="/api/gui/notifications">
+    Display Windows 10-style notifications to users
+  </Card>
+  <Card title="Components" icon="cube" href="/api/gui/components">
+    Reusable UI components like emulated players and modals
+  </Card>
+  <Card title="EssentialGUI" icon="window-maximize">
+    Pre-styled base screen with Essential theming
+  </Card>
+  <Card title="Elementa" icon="code" href="/api/gui/elementa">
+    Modern declarative UI framework integration
+  </Card>
+</CardGroup>
+
+## Quick Start
+
+### Creating a Custom GUI
+
+Extend `EssentialGUI` to create a styled screen:
+
+```kotlin
+import gg.essential.api.gui.EssentialGUI
+import gg.essential.elementa.ElementaVersion
+import gg.essential.elementa.components.UIText
+import gg.essential.elementa.dsl.*
+
+class MyModGUI : EssentialGUI(
+    ElementaVersion.V5,
+    "My Mod Settings"
+) {
+    init {
+        // Add components to the content container
+        UIText("Hello, Essential!").constrain {
+            x = 10.pixels
+            y = 10.pixels
+        } childOf content
+    }
+}
+```
+
+### Displaying the GUI
+
+```kotlin
+import gg.essential.api.EssentialAPI
+
+// Display your GUI
+EssentialAPI.getGuiUtil().openScreen(MyModGUI())
+```
+
+## EssentialGUI Class
+
+The `EssentialGUI` class provides a styled base screen with Essential's dark theme and layout.
+
+### Constructor Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `version` | `ElementaVersion` | Elementa version for improved behavior |
+| `guiTitle` | `String` | Title displayed in the title bar |
+| `newGuiScale` | `Int` | GUI scale to use (default: current scale) |
+| `restorePreviousGuiOnClose` | `Boolean` | Restore previous screen on close |
+| `discordActivityDescription` | `String?` | Discord Rich Presence description |
+
+### Key Components
+
+The `EssentialGUI` provides several pre-configured components:
+
+```kotlin
+class MyGUI : EssentialGUI(ElementaVersion.V5, "My GUI") {
+    init {
+        // titleBar - The top bar with the title
+        // titleText - The title text component
+        // content - Main content container (add your UI here)
+        // scissorBox - Container for scissoring/clipping
+        
+        // Add your content
+        MyComponent() childOf content
+    }
+}
+```
+
+### Customization
+
+Override color methods to customize the theme:
+
+```kotlin
+class CustomThemedGUI : EssentialGUI(ElementaVersion.V5, "Custom") {
+    override fun getBackgroundColor() = Color(0x1a1a1a)
+    override fun getTitleBackgroundColor() = Color(0x2d2d2d)
+    override fun getTextHighlightColor() = Color(0xffffff)
+}
+```
+
+### Back Button
+
+Control the back button visibility:
+
+```kotlin
+backButtonVisible = false // Hide the back button
+```
+
+Override back button behavior:
+
+```kotlin
+override fun backButtonPressed() {
+    // Custom logic before closing
+    println("Back button pressed!")
+    super.backButtonPressed()
+}
+```
+
+### Setting Title Dynamically
+
+```kotlin
+setTitle("New Title")
+```
+
+## GuiRequiresTOS
+
+Implement this interface to require TOS acceptance before opening:
+
+```kotlin
+class MyGUI : EssentialGUI(ElementaVersion.V5, "My GUI"), GuiRequiresTOS {
+    // This GUI will only open if the user has accepted the TOS
+}
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use ElementaVersion.V5">
+    Always specify `ElementaVersion.V5` (or latest) for improved behavior and bug fixes.
+    
+    ```kotlin
+    EssentialGUI(ElementaVersion.V5, "My GUI")
+    ```
+  </Accordion>
+  
+  <Accordion title="Add Content to content Container">
+    Always add your UI components to the `content` container, not the `window` or other containers.
+    
+    ```kotlin
+    MyComponent() childOf content
+    ```
+  </Accordion>
+  
+  <Accordion title="Use Essential's GuiUtil">
+    Use `EssentialAPI.getGuiUtil().openScreen()` to display screens for proper handling.
+    
+    ```kotlin
+    EssentialAPI.getGuiUtil().openScreen(MyGUI())
+    ```
+  </Accordion>
+  
+  <Accordion title="Respect GUI Scale">
+    Let users control GUI scale. Use the default scale parameter.
+    
+    ```kotlin
+    EssentialGUI(
+        ElementaVersion.V5,
+        newGuiScale = EssentialAPI.getGuiUtil().getGuiScale()
+    )
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Notifications" icon="bell" href="/api/gui/notifications">
+    Learn how to display notifications
+  </Card>
+  <Card title="Components" icon="cube" href="/api/gui/components">
+    Use pre-built UI components
+  </Card>
+  <Card title="Elementa Guide" icon="book" href="/api/gui/elementa">
+    Learn the Elementa framework
+  </Card>
+  <Card title="GuiUtil" icon="tools" href="/api/utils/gui-util">
+    Explore GUI utilities
+  </Card>
+</CardGroup>

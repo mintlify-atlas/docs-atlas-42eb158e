@@ -1,0 +1,198 @@
+---
+title: API Overview
+description: Essential Mod's powerful API for Minecraft mod developers
+---
+
+Essential Mod provides a comprehensive API that gives mod developers access to a suite of powerful tools, utilities, and integrations for enhancing their Minecraft mods.
+
+## What is Essential API?
+
+The Essential API is the public interface to Essential's development tools, offering everything from command registration and notifications to GUI utilities and Mojang API integration. The API is designed to be easy to use while providing powerful functionality.
+
+<CardGroup cols={2}>
+  <Card title="Commands" icon="terminal">
+    Register custom commands with powerful argument parsing and type safety
+  </Card>
+  <Card title="Notifications" icon="bell">
+    Display beautiful, non-intrusive notifications to users
+  </Card>
+  <Card title="GUI Utilities" icon="window">
+    Screen management, GUI scaling, and Elementa component factories
+  </Card>
+  <Card title="Minecraft Utils" icon="cube">
+    Common utilities for chat, server detection, and resource handling
+  </Card>
+  <Card title="Mojang API" icon="user">
+    Easy access to UUID lookups, profile data, and skin management
+  </Card>
+  <Card title="Config Access" icon="gear">
+    Read Essential's user settings to adapt your mod's behavior
+  </Card>
+</CardGroup>
+
+## Core Interface
+
+All API functionality is accessed through the `EssentialAPI` interface, which serves as the central entry point:
+
+```kotlin
+package gg.essential.api
+
+interface EssentialAPI {
+    fun commandRegistry(): CommandRegistry
+    fun di(): DI
+    fun notifications(): Notifications
+    fun config(): EssentialConfig
+    fun guiUtil(): GuiUtil
+    fun minecraftUtil(): MinecraftUtils
+    fun shutdownHookUtil(): ShutdownHookUtil
+    fun imageCache(): ImageCache
+    fun trustedHostsUtil(): TrustedHostsUtil
+    fun componentFactory(): EssentialComponentFactory
+    fun mojangAPI(): MojangAPI
+    fun onboardingData(): OnboardingData
+}
+```
+
+## Access Methods
+
+Essential provides two ways to access the API:
+
+### Static Access
+
+The simplest way to access the API is through static methods:
+
+<CodeGroup>
+```kotlin Kotlin
+import gg.essential.api.EssentialAPI
+
+// Get the API instance
+val api = EssentialAPI.getInstance()
+
+// Or use direct getters
+val notifications = EssentialAPI.getNotifications()
+val commandRegistry = EssentialAPI.getCommandRegistry()
+val guiUtil = EssentialAPI.getGuiUtil()
+```
+
+```java Java
+import gg.essential.api.EssentialAPI;
+
+// Get the API instance
+EssentialAPI api = EssentialAPI.getInstance();
+
+// Or use direct getters
+Notifications notifications = EssentialAPI.getNotifications();
+CommandRegistry commandRegistry = EssentialAPI.getCommandRegistry();
+GuiUtil guiUtil = EssentialAPI.getGuiUtil();
+```
+</CodeGroup>
+
+### Dependency Injection
+
+Essential uses [Kodein DI](https://kodein.org/di/) for dependency injection. You can retrieve API instances using the `get()` function:
+
+<CodeGroup>
+```kotlin Kotlin
+import gg.essential.api.utils.get
+import gg.essential.api.gui.Notifications
+import gg.essential.api.commands.CommandRegistry
+
+// Get instances via DI
+val notifications = get<Notifications>()
+val commandRegistry = get<CommandRegistry>()
+val minecraftUtils = get<MinecraftUtils>()
+```
+</CodeGroup>
+
+<Info>
+Dependency injection is only available in Kotlin. Java developers should use the static access methods.
+</Info>
+
+## Key Features
+
+### Commands
+
+Register custom commands with automatic argument parsing, tab completion, and type safety. Essential's command system handles the complexity of parsing user input.
+
+```kotlin
+val commandRegistry = EssentialAPI.getCommandRegistry()
+commandRegistry.registerCommand(MyCommand())
+```
+
+### Notifications
+
+Display elegant notifications in the bottom-right corner of the screen. Notifications can include actions, custom durations, and callbacks.
+
+```kotlin
+val notifications = EssentialAPI.getNotifications()
+notifications.push("Title", "Message")
+```
+
+### GUI Utilities
+
+Manage screen navigation, get GUI scale information, and create Essential-styled components using Elementa.
+
+```kotlin
+val guiUtil = EssentialAPI.getGuiUtil()
+guiUtil.openScreen(MyCustomScreen())
+```
+
+### Minecraft Utilities
+
+Common helper functions for sending chat messages, detecting servers (like Hypixel), loading resources, and more.
+
+```kotlin
+val minecraftUtil = EssentialAPI.getMinecraftUtil()
+minecraftUtil.sendMessage("Hello, player!")
+val isHypixel = minecraftUtil.isHypixel()
+```
+
+### Mojang API Integration
+
+Simple interface to the Mojang API for UUID/username lookups, profile data, and skin changes.
+
+```kotlin
+val mojangAPI = EssentialAPI.getMojangAPI()
+val uuid = mojangAPI.getUUID("Notch")?.get()
+```
+
+### Configuration Access
+
+Read Essential's user settings to adapt your mod's behavior based on user preferences.
+
+```kotlin
+val config = EssentialAPI.getConfig()
+if (config.disableAllNotifications) {
+    // Don't send notifications
+}
+```
+
+## API Modules
+
+The Essential API is organized into focused modules:
+
+- **Commands** - Command registration, argument parsing, and custom type handlers
+- **GUI** - Notifications, screen management, Essential components, and Elementa integration  
+- **Utils** - Minecraft helpers, GUI utilities, multithreading, web requests, and shutdown hooks
+- **Config** - Access to Essential's configuration options
+- **Cosmetics** - Cosmetic rendering integration
+- **Data** - User onboarding and TOS status
+- **Profile** - Game profile wrappers
+- **DI** - Dependency injection framework access
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Setup" icon="rocket" href="/api/setup">
+    Set up your project to use the Essential API
+  </Card>
+  <Card title="Commands" icon="terminal" href="/api/commands/overview">
+    Learn how to register and use commands
+  </Card>
+  <Card title="Notifications" icon="bell" href="/api/gui/notifications">
+    Display notifications to users
+  </Card>
+  <Card title="GUI Development" icon="window" href="/api/gui/overview">
+    Build user interfaces with Essential
+  </Card>
+</CardGroup>

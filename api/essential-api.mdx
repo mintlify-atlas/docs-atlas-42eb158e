@@ -1,0 +1,278 @@
+---
+title: "EssentialAPI"
+description: "Central access point for all Essential development tools"
+---
+
+## Overview
+
+The `EssentialAPI` interface is the central access point for all public Essential development tools. You can obtain an instance via `EssentialAPI.getInstance()` or through dependency injection.
+
+## Getting an Instance
+
+There are two ways to access the Essential API:
+
+### Static Access
+
+```kotlin
+val api = EssentialAPI.getInstance()
+```
+
+```java
+EssentialAPI api = EssentialAPI.getInstance();
+```
+
+### Dependency Injection
+
+See [Dependency Injection](/api/dependency-injection) for details on using DI.
+
+```kotlin
+val api = get<EssentialAPI>()
+```
+
+## API Methods
+
+### commandRegistry()
+
+The entry point to Essential's powerful Command API. All commands must be registered here if you wish for them to work.
+
+```kotlin
+fun commandRegistry(): CommandRegistry
+```
+
+**Returns:** `CommandRegistry` - The command registry instance
+
+**Static Access:**
+```kotlin
+val registry = EssentialAPI.getCommandRegistry()
+```
+
+---
+
+### di()
+
+Access Essential's dependency injection system. Essential provides the option of obtaining all of its APIs via dependency injection, as well as providing a library for you to use DI in your own projects.
+
+```kotlin
+fun di(): DI
+```
+
+**Returns:** `DI` - The dependency injection instance
+
+**Static Access:**
+```kotlin
+val di = EssentialAPI.getDI()
+```
+
+See [Dependency Injection](/api/dependency-injection) for more information.
+
+---
+
+### notifications()
+
+Notifications are a way to quickly display relevant information to the user without cluttering their chat box. Essential provides an easy to use API to display beautiful notifications.
+
+```kotlin
+fun notifications(): Notifications
+```
+
+**Returns:** `Notifications` - The notifications API instance
+
+**Static Access:**
+```kotlin
+val notifications = EssentialAPI.getNotifications()
+```
+
+---
+
+### config()
+
+Essential has some internal settings that players can modify with the Essential config GUI. If you wish to have behavior dependent on any of these options, you can access their values here.
+
+```kotlin
+fun config(): EssentialConfig
+```
+
+**Returns:** `EssentialConfig` - The Essential configuration instance
+
+**Static Access:**
+```kotlin
+val config = EssentialAPI.getConfig()
+```
+
+---
+
+### guiUtil()
+
+A collection of GUI utilities.
+
+```kotlin
+fun guiUtil(): GuiUtil
+```
+
+**Returns:** `GuiUtil` - GUI utilities instance
+
+**Static Access:**
+```kotlin
+val guiUtil = EssentialAPI.getGuiUtil()
+```
+
+---
+
+### minecraftUtil()
+
+A collection of general Minecraft related utilities.
+
+```kotlin
+fun minecraftUtil(): MinecraftUtils
+```
+
+**Returns:** `MinecraftUtils` - Minecraft utilities instance
+
+**Static Access:**
+```kotlin
+val mcUtil = EssentialAPI.getMinecraftUtil()
+```
+
+---
+
+### shutdownHookUtil()
+
+A utility that allows you to run something when shutting down to prevent using Runtime's shutdown hook.
+
+```kotlin
+fun shutdownHookUtil(): ShutdownHookUtil
+```
+
+**Returns:** `ShutdownHookUtil` - Shutdown hook utility instance
+
+**Static Access:**
+```kotlin
+val shutdownUtil = EssentialAPI.getShutdownHookUtil()
+```
+
+---
+
+### imageCache()
+
+Image cache for Minecraft skins.
+
+```kotlin
+fun imageCache(): ImageCache
+```
+
+**Returns:** `ImageCache` - The image cache instance
+
+**Static Access:**
+```kotlin
+val cache = EssentialAPI.getImageCache()
+```
+
+---
+
+### trustedHostsUtil()
+
+Utility for interacting with Essential's trusted image host list.
+
+```kotlin
+fun trustedHostsUtil(): TrustedHostsUtil
+```
+
+**Returns:** `TrustedHostsUtil` - Trusted hosts utility instance
+
+**Static Access:**
+```kotlin
+val hostsUtil = EssentialAPI.getTrustedHostsUtil()
+```
+
+---
+
+### componentFactory()
+
+Utility for using some of Essential's [Elementa](https://github.com/sk1erllc/elementa) components in your GUIs.
+
+```kotlin
+fun componentFactory(): EssentialComponentFactory
+```
+
+**Returns:** `EssentialComponentFactory` - The component factory instance
+
+**Static Access:**
+```kotlin
+val factory = EssentialAPI.getEssentialComponentFactory()
+```
+
+---
+
+### mojangAPI()
+
+Utility for interacting with the [Mojang API](https://wiki.vg/Mojang_API).
+
+```kotlin
+fun mojangAPI(): MojangAPI
+```
+
+**Returns:** `MojangAPI` - The Mojang API utility instance
+
+**Static Access:**
+```kotlin
+val mojang = EssentialAPI.getMojangAPI()
+```
+
+---
+
+### onboardingData()
+
+Utility for accessing the player's Essential TOS status.
+
+```kotlin
+fun onboardingData(): OnboardingData
+```
+
+**Returns:** `OnboardingData` - The onboarding data instance
+
+**Static Access:**
+```kotlin
+val data = EssentialAPI.getOnboardingData()
+```
+
+## Usage Examples
+
+### Accessing Multiple APIs
+
+```kotlin
+val api = EssentialAPI.getInstance()
+
+// Register a command
+val commandRegistry = api.commandRegistry()
+commandRegistry.registerCommand(MyCommand())
+
+// Show a notification
+val notifications = api.notifications()
+notifications.push("Hello", "Welcome to Essential!")
+
+// Access config
+val config = api.config()
+if (config.essentialFull) {
+    // Do something if Essential Full is enabled
+}
+```
+
+### Using Static Methods (Java)
+
+```java
+// Get command registry
+CommandRegistry registry = EssentialAPI.getCommandRegistry();
+registry.registerCommand(new MyCommand());
+
+// Show notification
+Notifications notifications = EssentialAPI.getNotifications();
+notifications.push("Title", "Message");
+
+// Access Mojang API
+MojangAPI mojang = EssentialAPI.getMojangAPI();
+```
+
+## Source Reference
+
+- Location: `api/src/main/kotlin/gg/essential/api/EssentialAPI.kt`
+- Package: `gg.essential.api`

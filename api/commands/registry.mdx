@@ -1,0 +1,481 @@
+---
+title: "Command Registry"
+description: "Register commands and custom argument parsers with the CommandRegistry"
+---
+
+The `CommandRegistry` is Essential's central system for managing commands and custom argument parsers. It provides methods to register commands, add custom type parsers, and unregister commands.
+
+## Accessing the Registry
+
+Get the command registry instance through the Essential API:
+
+```kotlin
+import gg.essential.api.EssentialAPI
+
+val registry = EssentialAPI.getCommandRegistry()
+```
+
+## CommandRegistry Interface
+
+```kotlin
+interface CommandRegistry {
+    /**
+     * Add your command instance to the command registry, making it available for use.
+     */
+    fun registerCommand(command: Command)
+
+    /**
+     * If one of your command handlers wishes to take a custom type, you must provide a way for the command engine
+     * to turn an ArgumentQueue into your instance. This is done via an implementation of ArgumentParser.
+     *
+     * There is no need to create custom parsers for default types such as: strings, integers, doubles, and booleans.
+     */
+    fun <T> registerParser(type: Class<T>, parser: ArgumentParser<T>)
+
+    /**
+     * Remove your command from the command registry.
+     */
+    fun unregisterCommand(command: Command)
+}
+```
+
+## Registering Commands
+
+### Using the register() Method
+
+The simplest way to register a command is using the built-in `register()` method:
+
+```kotlin
+object MyCommand : Command("mycommand") {
+    @DefaultHandler
+    fun handle() {
+        println("Command executed!")
+    }
+}
+
+// Register the command
+MyCommand.register()
+```
+
+Internally, this calls:
+
+```kotlin
+fun register() {
+    EssentialAPI.getCommandRegistry().registerCommand(this)
+}
+```
+
+### Manual Registration
+
+You can also register manually:
+
+```kotlin
+val registry = EssentialAPI.getCommandRegistry()
+registry.registerCommand(MyCommand)
+```
+
+### Registration Best Practices
+
+Register commands during your mod's initialization:
+
+```kotlin
+object MyMod {
+    fun init() {
+        // Register all commands
+        MyCommand.register()
+        AdminCommand.register()
+        UtilityCommand.register()
+    }
+}
+```
+
+## Unregistering Commands
+
+Remove a command from the registry when it's no longer needed:
+
+```kotlin
+val registry = EssentialAPI.getCommandRegistry()
+registry.unregisterCommand(MyCommand)
+```
+
+Common use cases:
+- Disabling features dynamically
+- Reloading command configurations
+- Mod shutdown/cleanup
+
+## Custom Argument Parsers
+
+While Essential provides built-in parsers for common types (String, Int, Double, Boolean), you can create custom parsers for your own types.
+
+### Built-in Types
+
+These types work automatically without custom parsers:
+
+- `String`
+- `Int` / `java.lang.Integer`
+- `Double` / `java.lang.Double`
+- `Float` / `java.lang.Float`
+- `Boolean` / `java.lang.Boolean`
+
+### Creating a Custom Parser
+
+#### 1. Define Your Type
+
+```kotlin
+data class Player(val name: String, val uuid: UUID)
+```
+
+#### 2. Implement ArgumentParser
+
+```kotlin
+import gg.essential.api.commands.ArgumentParser
+import gg.essential.api.commands.ArgumentQueue
+import java.lang.reflect.Parameter
+
+class PlayerParser : ArgumentParser<Player> {
+    /**
+     * Parse arguments into a Player instance.
+     * Return null or throw an exception if parsing fails.
+     */
+    override fun parse(arguments: ArgumentQueue, param: Parameter): Player? {
+        if (arguments.isEmpty()) {
+            return null
+        }
+
+        val name = arguments.poll()
+        val player = findPlayerByName(name)
+
+        if (player == null) {
+            throw IllegalArgumentException("Player '$name' not found")
+        }
+
+        return player
+    }
+
+    /**
+     * Provide tab completion options.
+     * This is optional - return emptyList() if not needed.
+     */
+    override fun complete(arguments: ArgumentQueue, param: Parameter): List<String> {
+        return getAllOnlinePlayerNames()
+    }
+
+    private fun findPlayerByName(name: String): Player? {
+        // Your implementation
+        return null
+    }
+
+    private fun getAllOnlinePlayerNames(): List<String> {
+        // Your implementation
+        return emptyList()
+    }
+}
+```
+
+#### 3. Register the Parser
+
+```kotlin
+val registry = EssentialAPI.getCommandRegistry()
+registry.registerParser(Player::class.java, PlayerParser())
+```
+
+#### 4. Use in Commands
+
+```kotlin
+object TeleportCommand : Command("tp") {
+    @DefaultHandler
+    fun teleport(player: Player) {
+        // Player is automatically parsed using PlayerParser
+        println("Teleporting to ${player.name}")
+    }
+}
+```
+
+### ArgumentParser Interface
+
+```kotlin
+interface ArgumentParser<T> {
+    /**
+     * Parses to a certain type based on the arguments provided by the user
+     * and the parameter (for accessing annotations).
+     *
+     * If the arguments provided do not allow for your custom type to be created, throw an
+     * Exception, or return null.
+     */
+    @Throws(Exception::class)
+    fun parse(arguments: ArgumentQueue, param: Parameter): T?
+
+    /**
+     * Allows this ArgumentParser to provide custom tab completion options.
+     *
+     * This does not need to be overridden: by default no tab completion options will be available.
+     */
+    fun complete(arguments: ArgumentQueue, param: Parameter): List<String> = emptyList()
+}
+```
+
+## Advanced Parser Examples
+
+### Multi-Argument Parser
+
+Parse multiple arguments into a single object:
+
+```kotlin
+data class Coordinate(val x: Int, val y: Int, val z: Int)
+
+class CoordinateParser : ArgumentParser<Coordinate> {
+    override fun parse(arguments: ArgumentQueue, param: Parameter): Coordinate? {
+        if (arguments.isEmpty()) return null
+
+        val x = arguments.poll().toIntOrNull() 
+            ?: throw IllegalArgumentException("Invalid X coordinate")
+        val y = arguments.poll().toIntOrNull() 
+            ?: throw IllegalArgumentException("Invalid Y coordinate")
+        val z = arguments.poll().toIntOrNull() 
+            ?: throw IllegalArgumentException("Invalid Z coordinate")
+
+        return Coordinate(x, y, z)
+    }
+
+    override fun complete(arguments: ArgumentQueue, param: Parameter): List<String> {
+        return listOf("~", "0", "100", "-100")
+    }
+}
+```
+
+Registration:
+
+```kotlin
+EssentialAPI.getCommandRegistry()
+    .registerParser(Coordinate::class.java, CoordinateParser())
+```
+
+Usage:
+
+```kotlin
+@DefaultHandler
+fun teleport(coords: Coordinate) {
+    // /tp 100 64 -200
+    println("Teleporting to ${coords.x}, ${coords.y}, ${coords.z}")
+}
+```
+
+### Annotation-Aware Parser
+
+Access parameter annotations in your parser:
+
+```kotlin
+@Target(AnnotationTarget.VALUE_PARAMETER)
+@Retention(AnnotationRetention.RUNTIME)
+annotation class Range(val min: Int, val max: Int)
+
+class RangedIntParser : ArgumentParser<Int> {
+    override fun parse(arguments: ArgumentQueue, param: Parameter): Int? {
+        if (arguments.isEmpty()) return null
+
+        val value = arguments.poll().toIntOrNull() 
+            ?: throw IllegalArgumentException("Not a valid number")
+
+        val range = param.getAnnotation(Range::class.java)
+        if (range != null) {
+            if (value < range.min || value > range.max) {
+                throw IllegalArgumentException(
+                    "Value must be between ${range.min} and ${range.max}"
+                )
+            }
+        }
+
+        return value
+    }
+}
+```
+
+Usage:
+
+```kotlin
+@DefaultHandler
+fun setVolume(@Range(min = 0, max = 100) volume: Int) {
+    // Automatically validated to be 0-100
+    println("Volume set to $volume%")
+}
+```
+
+### Enum Parser
+
+Parse enum types with automatic tab completion:
+
+```kotlin
+enum class GameMode {
+    SURVIVAL, CREATIVE, ADVENTURE, SPECTATOR
+}
+
+class GameModeParser : ArgumentParser<GameMode> {
+    override fun parse(arguments: ArgumentQueue, param: Parameter): GameMode? {
+        if (arguments.isEmpty()) return null
+
+        val value = arguments.poll()
+        return try {
+            GameMode.valueOf(value.uppercase())
+        } catch (e: IllegalArgumentException) {
+            throw IllegalArgumentException(
+                "Invalid game mode. Available: ${GameMode.values().joinToString()}"
+            )
+        }
+    }
+
+    override fun complete(arguments: ArgumentQueue, param: Parameter): List<String> {
+        return GameMode.values().map { it.name.lowercase() }
+    }
+}
+```
+
+## ArgumentQueue Reference
+
+The `ArgumentQueue` interface provides methods to access command arguments:
+
+```kotlin
+interface ArgumentQueue {
+    /**
+     * Poll the argument queue, getting the next string in the queue, and removing it from the queue.
+     * This method will throw an exception if there are no arguments left.
+     */
+    fun poll(): String
+
+    /**
+     * Peek into the argument queue without removing it. If there are no arguments left, the result will be null.
+     */
+    fun peek(): String?
+
+    /**
+     * Whether any more arguments have been passed. This is equivalent to [peek] returning null.
+     *
+     * @return true if no arguments are left
+     */
+    fun isEmpty(): Boolean
+}
+```
+
+### Usage Patterns
+
+```kotlin
+override fun parse(arguments: ArgumentQueue, param: Parameter): MyType? {
+    // Check if arguments are available
+    if (arguments.isEmpty()) {
+        return null
+    }
+
+    // Peek at next argument without consuming
+    val next = arguments.peek()
+    if (next == "special") {
+        arguments.poll() // Consume it
+        return MyType.SPECIAL
+    }
+
+    // Poll multiple arguments
+    val first = arguments.poll()
+    val second = arguments.poll()
+    val third = arguments.poll()
+
+    return MyType(first, second, third)
+}
+```
+
+## Complete Registration Example
+
+```kotlin
+import gg.essential.api.EssentialAPI
+import gg.essential.api.commands.*
+
+object MyMod {
+    fun init() {
+        val registry = EssentialAPI.getCommandRegistry()
+
+        // Register custom parsers
+        registry.registerParser(Player::class.java, PlayerParser())
+        registry.registerParser(Coordinate::class.java, CoordinateParser())
+        registry.registerParser(GameMode::class.java, GameModeParser())
+
+        // Register commands
+        TeleportCommand.register()
+        GameModeCommand.register()
+        AdminCommand.register()
+
+        println("All commands registered successfully!")
+    }
+
+    fun shutdown() {
+        val registry = EssentialAPI.getCommandRegistry()
+
+        // Unregister commands on shutdown
+        registry.unregisterCommand(TeleportCommand)
+        registry.unregisterCommand(GameModeCommand)
+        registry.unregisterCommand(AdminCommand)
+
+        println("All commands unregistered")
+    }
+}
+```
+
+## Best Practices
+
+### 1. Register During Initialization
+
+Register all commands and parsers during your mod's initialization phase:
+
+```kotlin
+@Mod("mymod")
+object MyMod {
+    init {
+        registerCommands()
+        registerParsers()
+    }
+}
+```
+
+### 2. Handle Parser Errors Gracefully
+
+Provide clear error messages when parsing fails:
+
+```kotlin
+override fun parse(arguments: ArgumentQueue, param: Parameter): Player? {
+    val name = arguments.poll()
+    return findPlayerByName(name) 
+        ?: throw IllegalArgumentException("Player '$name' not found or offline")
+}
+```
+
+### 3. Implement Tab Completion
+
+Always implement `complete()` for better user experience:
+
+```kotlin
+override fun complete(arguments: ArgumentQueue, param: Parameter): List<String> {
+    return getAllOnlinePlayerNames().filter { 
+        it.startsWith(arguments.peek() ?: "", ignoreCase = true)
+    }
+}
+```
+
+### 4. Reuse Parsers
+
+Create one parser instance and reuse it:
+
+```kotlin
+// Good
+val playerParser = PlayerParser()
+registry.registerParser(Player::class.java, playerParser)
+
+// Less efficient
+registry.registerParser(Player::class.java, PlayerParser())
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Overview" icon="book" href="/api/commands/overview">
+    Back to command system overview
+  </Card>
+  <Card title="Creating Commands" icon="code" href="/api/commands/creating-commands">
+    Learn how to create commands
+  </Card>
+</CardGroup>

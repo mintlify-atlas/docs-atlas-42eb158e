@@ -1,0 +1,378 @@
+---
+title: "Subcommands"
+description: "Creating complex command hierarchies with subcommands and handlers"
+---
+
+Subcommands allow you to create nested command structures like `/command subcommand args`. The Command API makes this simple with the `@SubCommand` annotation.
+
+## Basic Subcommands
+
+Annotate a function with `@SubCommand` to create a subcommand:
+
+```kotlin
+object MyCommand : Command("mycommand") {
+    @SubCommand("reload")
+    fun reload() {
+        println("Reloading configuration...")
+    }
+
+    @SubCommand("status")
+    fun status() {
+        println("Status: OK")
+    }
+}
+```
+
+Users can now execute:
+- `/mycommand reload`
+- `/mycommand status`
+
+## @SubCommand Annotation
+
+The `@SubCommand` annotation accepts three parameters:
+
+```kotlin
+@SubCommand(
+    value: String,
+    aliases: Array<String> = [],
+    description: String = ""
+)
+```
+
+### value
+The subcommand name (required):
+
+```kotlin
+@SubCommand("reload")
+fun reload() {
+    // Called with /mycommand reload
+}
+```
+
+### aliases
+Alternative names for the subcommand:
+
+```kotlin
+@SubCommand("gamemode", aliases = ["gm", "mode"])
+fun gamemode(mode: String) {
+    // Can be called with:
+    // /mycommand gamemode creative
+    // /mycommand gm creative
+    // /mycommand mode creative
+}
+```
+
+### description
+Description shown in auto-generated help:
+
+```kotlin
+@SubCommand("reload", description = "Reload the configuration files")
+fun reload() {
+    // Description appears in /mycommand help
+}
+```
+
+## Subcommands with Arguments
+
+Subcommands support the full argument parsing system:
+
+```kotlin
+@SubCommand("teleport", aliases = ["tp"])
+fun teleport(x: Int, y: Int, z: Int) {
+    // /mycommand teleport 100 64 -200
+    println("Teleporting to $x, $y, $z")
+}
+
+@SubCommand("give")
+fun give(player: String, item: String, amount: Int?) {
+    val count = amount ?: 1
+    // /mycommand give Steve diamond 64
+    println("Giving $player $count $item")
+}
+```
+
+## Combining @DefaultHandler and @SubCommand
+
+A command can have both a default handler and subcommands:
+
+```kotlin
+object ConfigCommand : Command("config") {
+    @DefaultHandler
+    fun showConfig() {
+        // Called with just /config
+        println("Current configuration:")
+        println("Option1: value1")
+        println("Option2: value2")
+    }
+
+    @SubCommand("reload", description = "Reload configuration")
+    fun reload() {
+        // Called with /config reload
+        println("Configuration reloaded!")
+    }
+
+    @SubCommand("set", description = "Set a configuration value")
+    fun set(key: String, @Greedy value: String) {
+        // Called with /config set option1 new value
+        println("Set $key to $value")
+    }
+}
+```
+
+**Behavior:**
+- `/config` → Calls `showConfig()`
+- `/config reload` → Calls `reload()`
+- `/config set key value` → Calls `set(key, value)`
+- `/config unknown` → Shows usage message
+
+## Nested Subcommands with @Options
+
+For deeper nesting, use the `@Options` annotation:
+
+```kotlin
+@SubCommand("permission")
+fun permission(
+    @Options(["add", "remove", "list"]) action: String,
+    player: String?
+) {
+    when (action) {
+        "add" -> println("Adding permission to $player")
+        "remove" -> println("Removing permission from $player")
+        "list" -> println("Listing permissions for $player")
+    }
+}
+```
+
+Usage:
+- `/mycommand permission add Steve`
+- `/mycommand permission remove Steve`
+- `/mycommand permission list Steve`
+
+<Note>
+`@Options` is primarily meant for nested subcommands and provides tab completion for the specified values.
+</Note>
+
+## Auto-Generated Help
+
+By default, commands automatically generate a help subcommand that shows all available subcommands, their usages, and descriptions:
+
+```kotlin
+object AdminCommand : Command(
+    name = "admin",
+    autoHelpSubcommand = true  // This is the default
+) {
+    @SubCommand("kick", description = "Kick a player from the server")
+    fun kick(player: String, @Greedy reason: String?) {
+        // ...
+    }
+
+    @SubCommand("ban", description = "Ban a player from the server")
+    fun ban(player: String, duration: Int?, @Greedy reason: String?) {
+        // ...
+    }
+}
+```
+
+Users can type `/admin help` to see:
+```
+Available subcommands:
+  kick <player> [reason] - Kick a player from the server
+  ban <player> [duration] [reason] - Ban a player from the server
+```
+
+To disable auto-help:
+
+```kotlin
+object AdminCommand : Command(
+    name = "admin",
+    autoHelpSubcommand = false
+)
+```
+
+## Case Insensitivity
+
+Subcommand names and aliases are case-insensitive:
+
+```kotlin
+@SubCommand("Reload")
+fun reload() {
+    // All of these work:
+    // /mycommand reload
+    // /mycommand Reload
+    // /mycommand RELOAD
+    // /mycommand ReLOaD
+}
+```
+
+## Complete Example
+
+Here's a comprehensive example with multiple subcommands:
+
+```kotlin
+import gg.essential.api.commands.*
+
+object ServerCommand : Command(
+    name = "server",
+    autoHelpSubcommand = true
+) {
+    override val commandAliases = setOf(Alias("srv"))
+
+    @DefaultHandler
+    fun showInfo() {
+        println("Server: Example Server")
+        println("Players: 10/100")
+        println("TPS: 20.0")
+    }
+
+    @SubCommand("tps", description = "Show server tick rate")
+    fun tps() {
+        println("Current TPS: 20.0")
+    }
+
+    @SubCommand(
+        "teleport",
+        aliases = ["tp"],
+        description = "Teleport to coordinates or player"
+    )
+    fun teleport(@Options(["player", "coords"]) type: String, @Greedy target: String) {
+        when (type) {
+            "player" -> println("Teleporting to player: $target")
+            "coords" -> println("Teleporting to coordinates: $target")
+        }
+    }
+
+    @SubCommand(
+        "gamemode",
+        aliases = ["gm"],
+        description = "Change game mode"
+    )
+    fun gamemode(
+        @Options(["survival", "creative", "adventure", "spectator"]) mode: String,
+        player: String?
+    ) {
+        val target = player ?: "yourself"
+        println("Setting $target to $mode mode")
+    }
+
+    @SubCommand("kick", description = "Kick a player")
+    fun kick(
+        @DisplayName("player") target: String,
+        @Greedy @DisplayName("reason") kickReason: String?
+    ) {
+        val reason = kickReason ?: "No reason provided"
+        println("Kicking $target: $reason")
+    }
+
+    @SubCommand("broadcast", aliases = ["bc"], description = "Broadcast a message")
+    fun broadcast(@Greedy message: String) {
+        println("Broadcasting: $message")
+    }
+}
+
+fun init() {
+    ServerCommand.register()
+}
+```
+
+Usage examples:
+```
+/server
+/server help
+/server tps
+/server tp player Steve
+/server tp coords 100 64 -200
+/server gm creative
+/server gm survival Steve
+/server kick BadPlayer Cheating
+/server broadcast Welcome to the server!
+```
+
+## Handler Selection Flow
+
+When a command is executed, Essential follows this flow:
+
+1. Check if the first argument matches a subcommand name or alias
+2. If matched, invoke that subcommand handler
+3. If not matched and a `@DefaultHandler` exists, invoke it
+4. If no match and no default handler, show usage message
+
+```kotlin
+object ExampleCommand : Command("example") {
+    @DefaultHandler
+    fun defaultAction(arg: String?) {
+        println("Default: $arg")
+    }
+
+    @SubCommand("test")
+    fun test() {
+        println("Test subcommand")
+    }
+}
+```
+
+**Behavior:**
+- `/example test` → Calls `test()`
+- `/example hello` → Calls `defaultAction("hello")`
+- `/example` → Calls `defaultAction(null)`
+
+## Best Practices
+
+### 1. Use Descriptive Names
+
+```kotlin
+// Good
+@SubCommand("reload", description = "Reload configuration files")
+fun reloadConfig() { }
+
+// Less clear
+@SubCommand("r")
+fun r() { }
+```
+
+### 2. Provide Aliases for Common Commands
+
+```kotlin
+@SubCommand("teleport", aliases = ["tp"])
+fun teleport(x: Int, y: Int, z: Int) { }
+```
+
+### 3. Add Descriptions for Help
+
+```kotlin
+@SubCommand(
+    "gamemode",
+    aliases = ["gm"],
+    description = "Change your or another player's game mode"
+)
+fun gamemode(mode: String, player: String?) { }
+```
+
+### 4. Use @Options for Fixed Choices
+
+```kotlin
+// Instead of this:
+@SubCommand("gamemode")
+fun gamemode(mode: String) {
+    if (mode !in listOf("survival", "creative", "adventure")) {
+        println("Invalid mode")
+        return
+    }
+}
+
+// Do this:
+@SubCommand("gamemode")
+fun gamemode(@Options(["survival", "creative", "adventure"]) mode: String) {
+    // Validation handled automatically
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Arguments" icon="terminal" href="/api/commands/arguments">
+    Learn more about argument parsing
+  </Card>
+  <Card title="Registry" icon="database" href="/api/commands/registry">
+    Register and manage commands
+  </Card>
+</CardGroup>

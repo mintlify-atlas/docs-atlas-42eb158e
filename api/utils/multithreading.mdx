@@ -1,0 +1,446 @@
+---
+title: Multithreading
+description: Utilities for running functions asynchronously
+---
+
+`Multithreading` is an object utility that provides thread pools and utilities for executing tasks asynchronously in Minecraft mods.
+
+## Accessing Multithreading
+
+```kotlin
+import gg.essential.api.utils.Multithreading
+
+// Multithreading is an object, use it directly
+Multithreading.runAsync {
+    // Your async code here
+}
+```
+
+```java
+import gg.essential.api.utils.Multithreading;
+
+// Use static methods in Java
+Multithreading.runAsync(() -> {
+    // Your async code here
+});
+```
+
+## Thread Pools
+
+Multithreading provides two thread pools for different use cases:
+
+### pool
+
+General-purpose thread pool executor for running async tasks.
+
+```kotlin
+val executor = Multithreading.pool
+
+// Direct access to ThreadPoolExecutor
+executor.execute {
+    println("Running in thread: ${Thread.currentThread().name}")
+}
+```
+
+**Configuration:**
+- Core pool size: 10 threads
+- Maximum pool size: 30 threads
+- Keep-alive time: 0 seconds
+- Queue: LinkedBlockingQueue (unbounded)
+- Thread naming: "Thread 1", "Thread 2", etc.
+
+### scheduledPool
+
+Scheduled executor service for delayed and repeating tasks.
+
+```kotlin
+val scheduler = Multithreading.scheduledPool
+
+// Direct access to ScheduledExecutorService
+scheduler.schedule({ println("Delayed task") }, 5, TimeUnit.SECONDS)
+```
+
+**Configuration:**
+- Pool size: 10 threads
+- Thread naming: "Thread 1", "Thread 2", etc.
+
+## Running Async Tasks
+
+### runAsync
+
+Execute a task asynchronously on the thread pool.
+
+<Tabs>
+  <Tab title="Kotlin">
+    ```kotlin
+    import gg.essential.api.utils.Multithreading
+
+    Multithreading.runAsync {
+        // This runs on a background thread
+        val data = fetchDataFromApi()
+        println("Fetched: $data")
+    }
+    ```
+  </Tab>
+  <Tab title="Java">
+    ```java
+    import gg.essential.api.utils.Multithreading;
+
+    Multithreading.runAsync(() -> {
+        // This runs on a background thread
+        String data = fetchDataFromApi();
+        System.out.println("Fetched: " + data);
+    });
+    ```
+  </Tab>
+</Tabs>
+
+**Parameters:**
+- `runnable: Runnable` - The task to execute
+
+**Notes:**
+- Tasks execute immediately (no delay)
+- Uses the general-purpose thread pool
+- Non-blocking operation
+
+### submit
+
+Submit a task and receive a Future to track completion.
+
+```kotlin
+import java.util.concurrent.Future
+
+val future: Future<*> = Multithreading.submit {
+    // Long-running task
+    Thread.sleep(5000)
+    println("Task completed")
+}
+
+// Check if task is done
+if (future.isDone) {
+    println("Task finished")
+}
+
+// Wait for task to complete
+future.get()
+```
+
+**Parameters:**
+- `runnable: Runnable` - The task to submit
+
+**Returns:** `Future<*>` - A future representing the task execution
+
+## Scheduling Tasks
+
+### schedule (Single Execution)
+
+Schedule a task to run once after a delay.
+
+```kotlin
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.ScheduledFuture
+
+val future: ScheduledFuture<*> = Multithreading.schedule(
+    { println("Delayed task executed") },
+    delay = 5,
+    unit = TimeUnit.SECONDS
+)
+
+// Cancel the scheduled task if needed
+future.cancel(false)
+```
+
+**Parameters:**
+- `r: Runnable` - The task to execute
+- `delay: Long` - Delay before execution
+- `unit: TimeUnit` - Time unit for the delay
+
+**Returns:** `ScheduledFuture<*>` - A future representing the scheduled task
+
+### schedule (Repeating Execution)
+
+Schedule a task to run repeatedly at fixed intervals.
+
+```kotlin
+import java.util.concurrent.TimeUnit
+
+val repeatingTask = Multithreading.schedule(
+    r = { println("Tick: ${System.currentTimeMillis()}") },
+    initialDelay = 0,
+    delay = 1,
+    unit = TimeUnit.SECONDS
+)
+
+// Cancel after some time
+Thread.sleep(5000)
+repeatingTask.cancel(false)
+```
+
+**Parameters:**
+- `r: Runnable` - The task to execute repeatedly
+- `initialDelay: Long` - Delay before first execution
+- `delay: Long` - Delay between subsequent executions
+- `unit: TimeUnit` - Time unit for delays
+
+**Returns:** `ScheduledFuture<*>` - A future representing the scheduled task
+
+**Notes:**
+- Uses fixed-rate scheduling (not fixed-delay)
+- Executions may overlap if task takes longer than the delay
+
+## Object Reference
+
+```kotlin
+object Multithreading {
+    val pool: ThreadPoolExecutor
+    val scheduledPool: ScheduledExecutorService
+    
+    fun runAsync(runnable: Runnable)
+    fun submit(runnable: Runnable): Future<*>
+    fun schedule(r: Runnable, delay: Long, unit: TimeUnit): ScheduledFuture<*>
+    fun schedule(
+        r: Runnable,
+        initialDelay: Long,
+        delay: Long,
+        unit: TimeUnit
+    ): ScheduledFuture<*>
+}
+```
+
+## Common Use Cases
+
+### Background API Requests
+
+```kotlin
+import gg.essential.api.utils.Multithreading
+import gg.essential.api.utils.WebUtil
+
+fun fetchPlayerData(uuid: String) {
+    Multithreading.runAsync {
+        // Runs off the main thread
+        val json = WebUtil.fetchJSON("https://api.example.com/player/$uuid")
+        val playerName = json.optString("name")
+        
+        // Update UI on main thread if needed
+        println("Player: $playerName")
+    }
+}
+```
+
+### Delayed Actions
+
+```kotlin
+import java.util.concurrent.TimeUnit
+
+fun showDelayedMessage() {
+    Multithreading.schedule(
+        { println("This appears after 3 seconds") },
+        delay = 3,
+        unit = TimeUnit.SECONDS
+    )
+}
+```
+
+### Periodic Tasks
+
+```kotlin
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.ScheduledFuture
+
+class AutoSaver {
+    private var saveTask: ScheduledFuture<*>? = null
+    
+    fun start() {
+        saveTask = Multithreading.schedule(
+            r = { performAutoSave() },
+            initialDelay = 60,
+            delay = 60,
+            unit = TimeUnit.SECONDS
+        )
+    }
+    
+    fun stop() {
+        saveTask?.cancel(false)
+    }
+    
+    private fun performAutoSave() {
+        println("Auto-saving...")
+        // Save logic here
+    }
+}
+```
+
+### Parallel Processing
+
+```kotlin
+import java.util.concurrent.Future
+
+fun processMultipleItems(items: List<String>) {
+    val futures = mutableListOf<Future<*>>()
+    
+    items.forEach { item ->
+        val future = Multithreading.submit {
+            processItem(item)
+        }
+        futures.add(future)
+    }
+    
+    // Wait for all tasks to complete
+    futures.forEach { it.get() }
+    println("All items processed")
+}
+
+fun processItem(item: String) {
+    println("Processing: $item")
+    Thread.sleep(1000)
+}
+```
+
+### Async with Callback
+
+```kotlin
+fun asyncOperation(callback: (String) -> Unit) {
+    Multithreading.runAsync {
+        // Simulate long operation
+        Thread.sleep(2000)
+        val result = "Operation complete"
+        
+        // Invoke callback with result
+        callback(result)
+    }
+}
+
+// Usage
+asyncOperation { result ->
+    println("Result: $result")
+}
+```
+
+### Timeout Handling
+
+```kotlin
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
+
+fun operationWithTimeout() {
+    val future = Multithreading.submit {
+        // Potentially long-running task
+        Thread.sleep(10000)
+        "Done"
+    }
+    
+    try {
+        // Wait max 5 seconds
+        future.get(5, TimeUnit.SECONDS)
+        println("Operation completed in time")
+    } catch (e: TimeoutException) {
+        println("Operation timed out")
+        future.cancel(true)
+    }
+}
+```
+
+### Debounced Actions
+
+```kotlin
+import java.util.concurrent.ScheduledFuture
+import java.util.concurrent.TimeUnit
+
+class DebouncedAction(private val delayMs: Long, private val action: () -> Unit) {
+    private var scheduledTask: ScheduledFuture<*>? = null
+    
+    fun trigger() {
+        // Cancel previous scheduled execution
+        scheduledTask?.cancel(false)
+        
+        // Schedule new execution
+        scheduledTask = Multithreading.schedule(
+            action,
+            delayMs,
+            TimeUnit.MILLISECONDS
+        )
+    }
+}
+
+// Usage
+val debouncedSave = DebouncedAction(1000) {
+    println("Saving...")
+    saveConfig()
+}
+
+// Each call resets the timer
+debouncedSave.trigger()
+debouncedSave.trigger()  // Previous call is cancelled
+debouncedSave.trigger()  // Only this one will execute after 1s
+```
+
+### Thread-Safe GUI Updates
+
+```kotlin
+import gg.essential.api.utils.GuiUtil
+
+fun loadDataAndUpdateGui() {
+    Multithreading.runAsync {
+        // Load data in background
+        val data = loadHeavyData()
+        
+        // Update GUI on main thread
+        GuiUtil.open(ResultsScreen(data))
+    }
+}
+```
+
+## Best Practices
+
+1. **Don't block the main thread**: Use `runAsync` for I/O operations, network requests, or heavy computations
+
+2. **Handle exceptions**: Wrap async code in try-catch blocks to prevent silent failures
+
+```kotlin
+Multithreading.runAsync {
+    try {
+        riskyOperation()
+    } catch (e: Exception) {
+        println("Error: ${e.message}")
+    }
+}
+```
+
+3. **Clean up scheduled tasks**: Cancel repeating tasks when no longer needed
+
+```kotlin
+class MyMod {
+    private var updateTask: ScheduledFuture<*>? = null
+    
+    fun onEnable() {
+        updateTask = Multithreading.schedule(::update, 0, 20, TimeUnit.SECONDS)
+    }
+    
+    fun onDisable() {
+        updateTask?.cancel(false)
+    }
+    
+    fun update() {
+        // Periodic update logic
+    }
+}
+```
+
+4. **Use appropriate time units**: Choose the most readable unit for your delays
+
+```kotlin
+// Good - clear and readable
+Multithreading.schedule(task, 5, TimeUnit.MINUTES)
+
+// Less clear
+Multithreading.schedule(task, 300, TimeUnit.SECONDS)
+```
+
+## Notes
+
+- Thread pools are shared across the application - avoid blocking operations
+- Scheduled tasks use fixed-rate execution, not fixed-delay
+- All threads are named sequentially: "Thread 1", "Thread 2", etc.
+- The general pool can grow to 30 threads maximum
+- Tasks are queued if all threads are busy
+- Always handle exceptions in async code to prevent thread pool contamination

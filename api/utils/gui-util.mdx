@@ -1,0 +1,226 @@
+---
+title: GuiUtil
+description: Utility functions for interacting with Minecraft's GUI system
+---
+
+The `GuiUtil` interface provides simple and handy utility functions for working with Minecraft's GUI system, including screen management and GUI scale detection.
+
+## Accessing GuiUtil
+
+```kotlin
+import gg.essential.api.EssentialAPI
+
+val guiUtil = EssentialAPI.getGuiUtil()
+```
+
+GuiUtil also provides static companion methods for common operations:
+
+```kotlin
+import gg.essential.api.utils.GuiUtil
+
+// Using companion methods
+GuiUtil.open(myScreen)
+val currentScreen = GuiUtil.getOpenedScreen()
+```
+
+## Screen Management
+
+### openScreen
+
+Queues a new screen for opening synchronously, avoiding potential mouse glitches.
+
+<Tabs>
+  <Tab title="Kotlin">
+    ```kotlin
+    import net.minecraft.client.gui.GuiScreen
+    import gg.essential.api.utils.GuiUtil
+
+    // Open a custom GUI
+    val myGui = MyCustomGui()
+    GuiUtil.open(myGui)
+
+    // Close the current GUI
+    GuiUtil.open(null)
+    ```
+  </Tab>
+  <Tab title="Java">
+    ```java
+    import net.minecraft.client.gui.GuiScreen;
+    import gg.essential.api.utils.GuiUtil;
+
+    // Open a custom GUI
+    GuiScreen myGui = new MyCustomGui();
+    GuiUtil.open(myGui);
+
+    // Close the current GUI
+    GuiUtil.open(null);
+    ```
+  </Tab>
+</Tabs>
+
+**Parameters:**
+- `screen: GuiScreen?` - The screen to open, or `null` to close the current screen
+
+**Benefits:**
+- Ensures GUI displays synchronously
+- Prevents mouse glitches that can occur with direct screen opening
+- Thread-safe screen transitions
+
+### openedScreen
+
+Returns the currently opened GUI screen.
+
+```kotlin
+val currentScreen = guiUtil.openedScreen()
+
+if (currentScreen != null) {
+    println("Screen is open: ${currentScreen.javaClass.simpleName}")
+} else {
+    println("No screen is currently open")
+}
+```
+
+**Returns:** `GuiScreen?` - The currently open screen, or `null` if no screen is open
+
+## GUI Scale
+
+### getGuiScale
+
+Retrieves the current GUI scale setting.
+
+```kotlin
+// Get current GUI scale
+val scale = guiUtil.getGuiScale()
+println("Current GUI scale: $scale")
+
+// Get GUI scale with custom step
+val customScale = guiUtil.getGuiScale(step = 2)
+```
+
+**Parameters:**
+- `step: Int` - Optional step parameter for GUI scale calculation (default behavior when not specified)
+
+**Returns:** `Int` - `-1` for automatic/current Minecraft GUI scale, or a positive integer indicating the GUI scale level
+
+## Method Reference
+
+```kotlin
+interface GuiUtil {
+    fun openScreen(screen: GuiScreen?)
+    fun openedScreen(): GuiScreen?
+    fun getGuiScale(): Int
+    fun getGuiScale(step: Int): Int
+    
+    companion object {
+        @JvmStatic
+        fun open(screen: GuiScreen?)
+        
+        @JvmStatic
+        fun getOpenedScreen(): GuiScreen?
+    }
+}
+```
+
+## Common Use Cases
+
+### Opening Custom GUIs
+
+```kotlin
+import gg.essential.api.utils.GuiUtil
+import net.minecraft.client.gui.GuiScreen
+
+class MyMod {
+    fun openSettings() {
+        val settingsGui = SettingsScreen()
+        GuiUtil.open(settingsGui)
+    }
+    
+    fun closeCurrentGui() {
+        GuiUtil.open(null)
+    }
+}
+```
+
+### Checking Current Screen
+
+```kotlin
+fun isMyGuiOpen(): Boolean {
+    val current = GuiUtil.getOpenedScreen()
+    return current is MyCustomGui
+}
+
+fun onTick() {
+    val openScreen = GuiUtil.getOpenedScreen()
+    
+    if (openScreen is MyModGui) {
+        // Update custom GUI elements
+        openScreen.updateDisplay()
+    }
+}
+```
+
+### Scale-Aware Rendering
+
+```kotlin
+import gg.essential.api.EssentialAPI
+
+fun calculateScaledDimensions() {
+    val guiUtil = EssentialAPI.getGuiUtil()
+    val scale = guiUtil.getGuiScale()
+    
+    if (scale > 0) {
+        // Use explicit scale
+        val width = baseWidth * scale
+        val height = baseHeight * scale
+    } else {
+        // Auto scale (-1)
+        // Use Minecraft's automatic scaling
+    }
+}
+```
+
+### Conditional GUI Opening
+
+```kotlin
+import gg.essential.api.utils.GuiUtil
+
+fun openGuiIfNotOpen() {
+    // Only open if no GUI is currently displayed
+    if (GuiUtil.getOpenedScreen() == null) {
+        GuiUtil.open(MyMainMenuGui())
+    }
+}
+
+fun replaceCurrentGui() {
+    val current = GuiUtil.getOpenedScreen()
+    
+    // Close current GUI and open new one
+    if (current != null) {
+        GuiUtil.open(NewReplacementGui(current))
+    }
+}
+```
+
+### Thread-Safe GUI Opening
+
+```kotlin
+import gg.essential.api.utils.Multithreading
+import gg.essential.api.utils.GuiUtil
+
+fun asyncOperation() {
+    Multithreading.runAsync {
+        // Perform background work
+        val data = fetchDataFromServer()
+        
+        // Safely open GUI from background thread
+        GuiUtil.open(ResultsGui(data))
+    }
+}
+```
+
+## Notes
+
+- Always use `GuiUtil.open()` instead of directly setting `Minecraft.currentScreen` to avoid mouse glitches
+- The API handles synchronization automatically, making it safe to call from any thread
+- Passing `null` to `openScreen()` will close the current GUI
+- The GUI scale value of `-1` indicates automatic/default Minecraft scaling

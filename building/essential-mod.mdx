@@ -1,0 +1,146 @@
+---
+title: Building Essential Mod
+description: Build Essential Mod for all Minecraft versions or specific versions
+---
+
+This guide covers building the Essential Mod from source code.
+
+<Note>
+  Before building, make sure you've completed the [development environment setup](/building/setup).
+</Note>
+
+## Build All Versions
+
+To build Essential for all supported Minecraft versions:
+
+```bash
+./gradlew build
+```
+
+<Warning>
+  Depending on your system and internet connection, the first build may take anywhere from 10 minutes to an hour.
+</Warning>
+
+This command will:
+- Build Essential for all Minecraft versions (1.8.9, 1.12.2, 1.16.2+, 1.17+, 1.18+, 1.19+, 1.20+, 1.21+)
+- Build for all supported mod loaders (Forge, Fabric, NeoForge)
+- Automatically build the Essential Loader (included in pinned jars)
+- Generate both container and pinned jar files
+
+## Build Specific Version
+
+To build for a specific Minecraft version:
+
+```bash
+./gradlew :<version>-<loader>:build
+```
+
+### Examples
+
+<CodeGroup>
+```bash Minecraft 1.12.2 (Forge)
+./gradlew :1.12.2-forge:build
+```
+
+```bash Minecraft 1.20.4 (Fabric)
+./gradlew :1.20.4-fabric:build
+```
+
+```bash Minecraft 1.21.4 (NeoForge)
+./gradlew :1.21.4-neoforge:build
+```
+</CodeGroup>
+
+<Note>
+  Building any version other than the main version (currently 1.12.2) will require all versions between it and the main version to be set up regardless. The time saved over building all versions may vary wildly.
+</Note>
+
+## Output Files
+
+Once the build finishes, you'll find the Essential jars in:
+
+```
+versions/<MC-Version>/build/libs/
+```
+
+### Two Types of Jars
+
+Each build produces two jar files:
+
+<AccordionGroup>
+  <Accordion title="pinned_*.jar - Distribution Jar">
+    The jar file starting with `pinned_` is the mod file made available via:
+    - Modrinth
+    - CurseForge
+
+    This jar contains a specific version of Essential bundled with the loader.
+  </Accordion>
+
+  <Accordion title="Essential*.jar - Update Jar">
+    The other jar file (not starting with `pinned_`) is downloaded by:
+    - In-game update functionality
+    - Third-party mods which embed the Essential Loader
+    - Thin container mods available on essential.gg/download
+    - The Essential Installer
+
+    This is the core Essential mod without the loader wrapper.
+  </Accordion>
+</AccordionGroup>
+
+## Version Aliases
+
+Some Essential versions are compatible with multiple Minecraft versions. The `versions/aliases.txt` file contains the exact mapping:
+
+```
+1.21.10-fabric → 1.21.9-fabric
+1.21.8-neoforge → 1.21.7-neoforge
+1.16.5-forge → 1.16.2-forge
+1.16.5-fabric → 1.16.2-fabric
+```
+
+When building or verifying, you can use the target version listed in `aliases.txt`.
+
+## Build Arguments
+
+The GitHub Actions workflow uses the following Gradle arguments:
+
+```bash
+./gradlew build --stacktrace
+```
+
+The `--stacktrace` flag provides detailed error information if the build fails.
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Build fails with Java version error">
+    Ensure Java 21 (or newer) is your default Java version:
+    ```bash
+    java -version
+    ```
+
+    Also verify all required JDK versions (8, 16, 17, 21) are installed.
+  </Accordion>
+
+  <Accordion title="Submodule errors during build">
+    Update your git submodules:
+    ```bash
+    git submodule update --init --recursive
+    ```
+  </Accordion>
+
+  <Accordion title="Out of memory errors">
+    The project is configured with `-Xmx16G` in `gradle.properties`. Ensure your system has sufficient memory, or adjust this value if needed.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Verify Your Build" icon="check" href="/building/verification">
+    Verify checksums match official releases
+  </Card>
+  <Card title="Build Essential Loader" icon="download" href="/building/essential-loader">
+    Build loader stages and platforms separately
+  </Card>
+</CardGroup>

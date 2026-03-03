@@ -1,0 +1,352 @@
+---
+title: 'Multi-Version Support'
+description: 'How Essential maintains a single codebase across Minecraft 1.8.9 to 1.21.x'
+keywords: ['multi-version', 'minecraft versions', 'compatibility', 'mappings', 'preprocessor']
+icon: 'layer-group'
+---
+
+## Overview
+
+Essential supports an unprecedented range of Minecraft versions from **1.8.9 to 1.21.x** using a single unified codebase. This is achieved through a sophisticated build system that transforms code to match each version's API.
+
+## Supported Versions
+
+Essential currently supports the following Minecraft versions:
+
+<AccordionGroup>
+  <Accordion title="Legacy versions (1.8.9 - 1.12.2)">
+    - 1.8.9-forge
+    - 1.12.2-forge
+    
+    These versions use Forge with LaunchWrapper and require special handling for LWJGL2 compatibility.
+  </Accordion>
+  
+  <Accordion title="Transition versions (1.16.2 - 1.17.1)">
+    - 1.16.2-forge, 1.16.2-fabric
+    - 1.17.1-forge, 1.17.1-fabric
+    
+    Introduction of Fabric support and transition to ModLauncher on Forge.
+  </Accordion>
+  
+  <Accordion title="Modern versions (1.18.x - 1.19.x)">
+    - 1.18.1-fabric, 1.18.2-fabric, 1.18.2-forge
+    - 1.19-fabric, 1.19.2-fabric/forge, 1.19.3-fabric/forge, 1.19.4-fabric/forge
+    
+    Full dual-loader support with improved performance features.
+  </Accordion>
+  
+  <Accordion title="Latest versions (1.20.x - 1.21.x)">
+    - 1.20-fabric through 1.20.6 (fabric/forge/neoforge)
+    - 1.21.1 through 1.21.11 (fabric/forge/neoforge)
+    
+    Adds NeoForge support starting from 1.20.4.
+  </Accordion>
+</AccordionGroup>
+
+<Info>
+Some Minecraft versions share the same Essential codebase. See the [Version Aliases](#version-aliases) section for details.
+</Info>
+
+## How It Works
+
+### Preprocessor System
+
+Essential uses a preprocessor-based approach to handle API differences between Minecraft versions:
+
+<CodeGroup>
+```java Platform checks
+//#if MC >= 11600
+import net.minecraft.client.gui.screen.Screen;
+//#else
+import net.minecraft.client.gui.GuiScreen;
+//#endif
+
+public class MyGui extends 
+//#if MC >= 11600
+    Screen
+//#else
+    GuiScreen
+//#endif
+{
+    // Implementation
+}
+```
+
+```java Version-specific logic
+public void renderBackground() {
+    //#if MC >= 11600
+    this.renderBackground();
+    //#elseif MC >= 11400
+    this.drawWorldBackground(0);
+    //#else
+    this.drawDefaultBackground();
+    //#endif
+}
+```
+</CodeGroup>
+
+The preprocessor evaluates these conditions at build time, generating version-specific source code.
+
+### Mapping Transformations
+
+Minecraft's obfuscation and API changes between versions are handled through mapping files:
+
+<Tabs>
+  <Tab title="1.12.2 → 1.8.9">
+    ```text versions/1.12.2-1.8.9.txt
+    net.minecraft.util.text.TextFormatting → net.minecraft.util.EnumChatFormatting
+    net.minecraft.entity.Entity getDataManager() → getDataWatcher()
+    net.minecraft.client.gui.GuiSlot func_192638_a_() → drawSelectionBox()
+    ```
+    
+    Simple name mappings for similar APIs.
+  </Tab>
+  
+  <Tab title="1.16.2 → 1.12.2">
+    ```text versions/1.16.2-1.12.2.txt
+    com.mojang.blaze3d.systems.RenderSystem → net.minecraft.client.renderer.GlStateManager
+    net.minecraft.client.gui.screen.Screen → net.minecraft.client.gui.GuiScreen
+    net.minecraft.client.gui.screen.Screen init()V → initGui()
+    net.minecraft.client.gui.screen.Screen render() → drawScreen()
+    ```
+    
+    Major refactoring between legacy and modern Minecraft.
+  </Tab>
+</Tabs>
+
+<Note>
+These mapping files are generated and maintained by Essential's multi-version tooling. They transform the modern API calls to work with older Minecraft versions.
+</Note>
+
+### Main Version Strategy
+
+Essential uses **1.12.2** as the main development version:
+
+<Steps>
+  <Step title="Write code for 1.12.2">
+    Developers write code targeting the 1.12.2 API. This is the "source of truth" for the codebase.
+  </Step>
+  
+  <Step title="Transform upward">
+    The build system transforms 1.12.2 code to work with newer versions (1.16.2+) by applying mappings and preprocessor directives.
+  </Step>
+  
+  <Step title="Transform downward">
+    Similarly, code is transformed downward to support 1.8.9 by reverting API changes.
+  </Step>
+</Steps>
+
+<Warning>
+Building any version other than 1.12.2 requires all versions between it and 1.12.2 to be set up, as the transformation chain must be complete.
+</Warning>
+
+## Version Aliases
+
+Not every Minecraft version requires a unique Essential build. The `versions/aliases.txt` file defines compatible versions:
+
+```text versions/aliases.txt
+1.21.10-fabric → 1.21.9-fabric
+1.21.8-neoforge → 1.21.7-neoforge
+1.21.8-forge → 1.21.7-forge
+1.21.8-fabric → 1.21.7-fabric
+1.21.2-fabric → 1.21.3-fabric
+1.21-fabric → 1.21.1-fabric
+1.18-fabric → 1.18.1-fabric
+1.19.1-fabric → 1.19.2-fabric
+1.16.5-forge → 1.16.2-forge
+1.16.5-fabric → 1.16.2-fabric
+```
+
+When Minecraft releases a minor update that doesn't break mod compatibility, Essential can reuse the same build.
+
+<Accordion title="How aliases work">
+When building or running Essential:
+
+1. The loader checks which Essential version is compatible with the current Minecraft version
+2. If an alias exists, it uses the aliased version's JAR
+3. This reduces build time and storage requirements
+
+For example, Minecraft 1.16.5 users receive the same Essential JAR as 1.16.2 users.
+</Accordion>
+
+## Version-Specific Code
+
+While most code is shared, some features require version-specific implementations:
+
+### Directory Structure
+
+```text Version-specific implementations
+versions/
+├── 1.8.9-forge/src/main/java/gg/essential/mixins/
+│   ├── transformers/client/
+│   ├── transformers/compatibility/
+│   └── transformers/feature/
+├── 1.21.11-fabric/src/main/java/gg/essential/mixins/
+│   └── transformers/feature/gamerules/
+```
+
+<Info>
+Version directories typically only contain mixins and compatibility patches. The vast majority of code lives in the shared `src/main` directory.
+</Info>
+
+### Common Version-Specific Cases
+
+<AccordionGroup>
+  <Accordion title="Compatibility fixes">
+    Patches for specific Minecraft bugs or compatibility issues with other mods:
+    
+    ```java versions/1.8.9-forge/.../Mixin_FixResourcePackCrash.java
+    @Mixin(ResourcePackRepository.class)
+    public class Mixin_FixResourcePackCrash {
+        // Fix a crash in 1.8.9's resource pack loading
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Feature variations">
+    Features that work differently across versions:
+    
+    ```java versions/1.8.9-forge/.../Mixin_NameplateIcon_Render.java
+    @Mixin(RendererLivingEntity.class)
+    public class Mixin_NameplateIcon_Render {
+        // 1.8.9-specific nameplate rendering
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Mod compatibility">
+    Patches for compatibility with version-specific mods:
+    
+    ```java .../modcompat/oldanimationsmod/MixinCustomLayerBipedArmor.java
+    @Mixin(CustomLayerBipedArmor.class)
+    public class MixinCustomLayerBipedArmor {
+        // Compat with OldAnimationsMod (1.8.9 only)
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Dependencies and Libraries
+
+Different Minecraft versions require different supporting libraries:
+
+### SLF4J Support
+
+```kotlin build.gradle.kts
+// Minecraft 1.17-1.19.2 ship SLF4J 1.x
+// Only 1.19.3+ ships SLF4J 2.x
+if (platform.mcVersion < 11903) {
+    implementation(bundle(project(":slf4j-to-log4j"))!!)
+}
+```
+
+### Performance Optimizations
+
+```kotlin build.gradle.kts
+// ImmediatelyFast is only compatible with 1.18+
+if (platform.mcVersion >= 11800) {
+    implementation(bundle(project(":immediatelyfast"))!!)
+}
+```
+
+### LWJGL3 Backport
+
+Older Minecraft versions (1.8.9-1.12.2) use LWJGL2. Essential includes an LWJGL3 backport for modern features:
+
+```kotlin build.gradle.kts
+implementation(bundle(project(":lwjgl3"))!!)
+runtimeOnly(bundle(project(":lwjgl3:impl"))!!)
+```
+
+## Build Process
+
+### Building All Versions
+
+```bash Building all versions
+./gradlew build
+```
+
+This builds Essential for every supported Minecraft version. The first build may take 10-60 minutes depending on your system.
+
+### Building Specific Versions
+
+```bash Building a specific version
+./gradlew :1.12.2-forge:build
+./gradlew :1.21.11-fabric:build
+```
+
+<Warning>
+Building any version other than the main version (1.12.2) requires all intermediate versions to be set up, so time savings may vary.
+</Warning>
+
+### Build Output
+
+Built JARs are located in `versions/<MC-Version>/build/libs/`:
+
+```
+versions/1.20.4-fabric/build/libs/
+├── Essential (fabric_1.20.4).jar          # Main JAR
+└── pinned_Essential (fabric_1.20.4).jar   # Modrinth/CurseForge JAR
+```
+
+## Testing Across Versions
+
+Essential's CI system verifies builds across all supported versions:
+
+<Steps>
+  <Step title="Internal CI">
+    Builds all versions, runs integration tests, and uploads artifacts to Essential's infrastructure.
+  </Step>
+  
+  <Step title="Public GitHub CI">
+    Rebuilds from public source on GitHub runners and verifies bit-for-bit identical output.
+  </Step>
+  
+  <Step title="Checksum Verification">
+    Publishes checksums for third-party verification without requiring a full rebuild.
+  </Step>
+</Steps>
+
+<Tip>
+You can verify the authenticity of Essential builds by comparing checksums from GitHub Actions runs. See the README for detailed instructions.
+</Tip>
+
+## Challenges and Solutions
+
+<CardGroup cols={2}>
+  <Card title="API Changes" icon="code">
+    Minecraft's API changes dramatically between versions. Solution: Mapping files and preprocessor directives.
+  </Card>
+  
+  <Card title="Performance" icon="gauge-high">
+    Older versions lack modern optimizations. Solution: Backport features like ImmediatelyFast and LWJGL3.
+  </Card>
+  
+  <Card title="Mod Compatibility" icon="puzzle-piece">
+    Popular mods differ per version. Solution: Version-specific compatibility mixins.
+  </Card>
+  
+  <Card title="Build Time" icon="clock">
+    Building all versions takes significant time. Solution: Version aliases and incremental builds.
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Loader Stages" icon="stairs" href="/concepts/loader-stages">
+    Learn how Essential's loader handles multi-version environments
+  </Card>
+  
+  <Card title="Platform Support" icon="puzzle-piece" href="/concepts/platforms">
+    Understand the four loader platforms Essential supports
+  </Card>
+  
+  <Card title="Build Setup" icon="wrench" href="/building/setup">
+    Set up your environment to build Essential
+  </Card>
+  
+  <Card title="Architecture" icon="sitemap" href="/concepts/architecture">
+    Return to the architecture overview
+  </Card>
+</CardGroup>

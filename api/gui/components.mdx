@@ -1,0 +1,531 @@
+---
+title: 'UI Components'
+description: 'Pre-built UI components from EssentialComponentFactory'
+icon: 'cube'
+---
+
+The `EssentialComponentFactory` provides pre-built, styled UI components that you can use in your mod's interfaces.
+
+## Overview
+
+Essential provides several reusable components:
+- Emulated Player (3D character preview)
+- Confirmation Modals
+- Icon Buttons (internal)
+
+These components are built with Elementa and integrate seamlessly with `EssentialGUI`.
+
+## Getting Started
+
+### Access the Component Factory
+
+```kotlin
+import gg.essential.api.EssentialAPI
+
+val factory = EssentialAPI.getEssentialComponentFactory()
+```
+
+## Emulated Player
+
+Display a 3D player model that can be rotated and customized.
+
+### Basic Usage
+
+```kotlin
+import gg.essential.api.gui.buildEmulatedPlayer
+import gg.essential.elementa.dsl.*
+
+val playerComponent = factory.buildEmulatedPlayer {
+    profile = player.gameProfile
+    showCape = true
+    draggable = true
+}
+
+playerComponent.constrain {
+    x = CenterConstraint()
+    y = CenterConstraint()
+    width = 200.pixels
+    height = 300.pixels
+} childOf window
+```
+
+### EmulatedPlayerBuilder
+
+Configure the emulated player using the builder:
+
+```kotlin
+import com.mojang.authlib.GameProfile
+import gg.essential.elementa.state.BasicState
+
+val profileState = BasicState<GameProfile?>(null)
+
+val player = factory.buildEmulatedPlayer {
+    // Set the player profile
+    profile = playerGameProfile
+    
+    // Or use a state for reactive updates
+    wrappedProfileState = BasicState(playerGameProfile.wrapped())
+    
+    // Show or hide cape
+    showCape = true
+    showCapeState = BasicState(true)
+    
+    // Allow rotation with mouse
+    draggable = true
+    draggableState = BasicState(true)
+    
+    // Render name tag
+    renderNameTag = false
+    renderNameTagState = BasicState(false)
+}
+```
+
+### Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `profile` | `GameProfile?` | The Minecraft player profile to display |
+| `wrappedProfileState` | `State<WrappedGameProfile?>?` | Reactive state for the profile |
+| `showCape` | `Boolean` | Whether to show the player's cape |
+| `showCapeState` | `State<Boolean>` | Reactive state for cape visibility |
+| `draggable` | `Boolean` | Whether the player can be rotated with mouse |
+| `draggableState` | `State<Boolean>` | Reactive state for draggability |
+| `renderNameTag` | `Boolean` | Whether to render the name tag |
+| `renderNameTagState` | `State<Boolean>` | Reactive state for name tag visibility |
+
+### Dynamic Updates
+
+Use states to update the player dynamically:
+
+```kotlin
+import gg.essential.elementa.state.BasicState
+
+val profileState = BasicState(currentPlayer.gameProfile.wrapped())
+val showCapeState = BasicState(true)
+
+val player = factory.buildEmulatedPlayer {
+    wrappedProfileState = profileState
+    showCapeState = showCapeState
+}
+
+// Later, update the profile
+profileState.set(otherPlayer.gameProfile.wrapped())
+
+// Toggle cape visibility
+showCapeState.set(false)
+```
+
+### Example: Character Customizer
+
+```kotlin
+import gg.essential.api.gui.EssentialGUI
+import gg.essential.elementa.ElementaVersion
+import gg.essential.elementa.dsl.*
+import gg.essential.elementa.state.BasicState
+
+class CharacterCustomizer : EssentialGUI(
+    ElementaVersion.V5,
+    "Customize Character"
+) {
+    private val showCapeState = BasicState(true)
+    
+    init {
+        val player = EssentialAPI.getEssentialComponentFactory()
+            .buildEmulatedPlayer {
+                profile = minecraft.session.profile
+                showCapeState = this@CharacterCustomizer.showCapeState
+                draggable = true
+                renderNameTag = true
+            }
+        
+        player.constrain {
+            x = CenterConstraint()
+            y = CenterConstraint()
+            width = 200.pixels
+            height = 400.pixels
+        } childOf content
+        
+        // Add toggle button
+        createToggleCapeButton()
+    }
+    
+    private fun createToggleCapeButton() {
+        // Button to toggle cape visibility
+        // (Implementation details omitted)
+    }
+}
+```
+
+## Confirmation Modal
+
+Display a modal dialog for user confirmation.
+
+### Basic Usage
+
+```kotlin
+import gg.essential.api.gui.buildConfirmationModal
+import gg.essential.api.EssentialAPI
+
+val modal = factory.buildConfirmationModal {
+    text = "Are you sure you want to delete this?"
+    
+    onConfirm = { userInput ->
+        println("Confirmed!")
+        deleteItem()
+    }
+    
+    onDeny = {
+        println("Cancelled")
+    }
+}
+
+// Display the modal
+EssentialAPI.getGuiUtil().openScreen(ModalScreen(modal))
+```
+
+### ConfirmationModalBuilder
+
+Configure the confirmation modal:
+
+```kotlin
+val modal = factory.buildConfirmationModal {
+    // Primary text
+    text = "Delete Item"
+    
+    // Secondary descriptive text
+    secondaryText = "This action cannot be undone."
+    
+    // Optional input field
+    inputPlaceholder = "Type 'DELETE' to confirm"
+    
+    // Button labels
+    confirmButtonText = "Delete"
+    denyButtonText = "Cancel"
+    
+    // Callbacks
+    onConfirm = { userInput ->
+        if (userInput == "DELETE") {
+            performDelete()
+        }
+    }
+    
+    onDeny = {
+        // User cancelled
+    }
+}
+```
+
+### Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `text` | `String` | Main modal text |
+| `secondaryText` | `String?` | Secondary descriptive text |
+| `inputPlaceholder` | `String?` | Placeholder for input field (if provided, shows input) |
+| `confirmButtonText` | `String` | Label for confirm button (default: "Confirm") |
+| `denyButtonText` | `String` | Label for deny button (default: "Decline") |
+| `onConfirm` | `(String) -> Unit` | Callback when confirmed (receives user input) |
+| `onDeny` | `() -> Unit` | Callback when denied |
+
+### Examples
+
+#### Simple Confirmation
+
+```kotlin
+fun confirmDelete(itemName: String) {
+    val modal = EssentialAPI.getEssentialComponentFactory()
+        .buildConfirmationModal {
+            text = "Delete $itemName?"
+            secondaryText = "This cannot be undone."
+            confirmButtonText = "Delete"
+            denyButtonText = "Cancel"
+            
+            onConfirm = { _ ->
+                deleteItem(itemName)
+            }
+        }
+    
+    showModal(modal)
+}
+```
+
+#### With User Input
+
+```kotlin
+fun confirmDangerousAction() {
+    val modal = EssentialAPI.getEssentialComponentFactory()
+        .buildConfirmationModal {
+            text = "Delete All Data"
+            secondaryText = "Type DELETE to confirm this action."
+            inputPlaceholder = "Type DELETE here"
+            confirmButtonText = "Confirm"
+            denyButtonText = "Cancel"
+            
+            onConfirm = { userInput ->
+                if (userInput.equals("DELETE", ignoreCase = true)) {
+                    deleteAllData()
+                } else {
+                    showError("Incorrect confirmation text")
+                }
+            }
+            
+            onDeny = {
+                println("User cancelled dangerous action")
+            }
+        }
+    
+    showModal(modal)
+}
+```
+
+#### Friend Request Modal
+
+```kotlin
+fun showFriendRequest(playerName: String) {
+    val modal = EssentialAPI.getEssentialComponentFactory()
+        .buildConfirmationModal {
+            text = "Friend Request"
+            secondaryText = "$playerName wants to be your friend."
+            confirmButtonText = "Accept"
+            denyButtonText = "Decline"
+            
+            onConfirm = { _ ->
+                acceptFriendRequest(playerName)
+            }
+            
+            onDeny = {
+                declineFriendRequest(playerName)
+            }
+        }
+    
+    showModal(modal)
+}
+```
+
+## Displaying Components
+
+### In EssentialGUI
+
+Add components to your custom GUI:
+
+```kotlin
+class MyGUI : EssentialGUI(ElementaVersion.V5, "My GUI") {
+    init {
+        val player = EssentialAPI.getEssentialComponentFactory()
+            .buildEmulatedPlayer {
+                profile = minecraft.session.profile
+            }
+        
+        player.constrain {
+            x = 10.pixels
+            y = 10.pixels
+            width = 150.pixels
+            height = 250.pixels
+        } childOf content
+    }
+}
+```
+
+### As Modal Dialog
+
+For modals, create a wrapper screen:
+
+```kotlin
+import gg.essential.elementa.WindowScreen
+import gg.essential.elementa.ElementaVersion
+import gg.essential.elementa.dsl.*
+
+fun showConfirmationModal() {
+    val modal = EssentialAPI.getEssentialComponentFactory()
+        .buildConfirmationModal {
+            text = "Confirm Action"
+            onConfirm = { _ -> performAction() }
+        }
+    
+    val screen = object : WindowScreen(ElementaVersion.V5) {
+        init {
+            modal childOf window
+        }
+    }
+    
+    EssentialAPI.getGuiUtil().openScreen(screen)
+}
+```
+
+## Java Examples
+
+### Emulated Player
+
+```java
+import gg.essential.api.EssentialAPI;
+import gg.essential.api.gui.EmulatedPlayerBuilder;
+import gg.essential.elementa.UIComponent;
+
+EmulatedPlayerBuilder builder = new EmulatedPlayerBuilder();
+builder.setProfile(player.getGameProfile());
+builder.setShowCape(true);
+builder.setDraggable(true);
+
+UIComponent playerComponent = builder.build(
+    EssentialAPI.getEssentialComponentFactory()
+);
+```
+
+### Confirmation Modal
+
+```java
+import gg.essential.api.gui.ConfirmationModalBuilder;
+
+ConfirmationModalBuilder builder = new ConfirmationModalBuilder();
+builder.setText("Delete Item?");
+builder.setSecondaryText("This cannot be undone.");
+builder.setConfirmButtonText("Delete");
+builder.setDenyButtonText("Cancel");
+
+builder.setOnConfirm(userInput -> {
+    deleteItem();
+    return null;
+});
+
+builder.setOnDeny(() -> {
+    System.out.println("Cancelled");
+    return null;
+});
+
+UIComponent modal = builder.build(
+    EssentialAPI.getEssentialComponentFactory()
+);
+```
+
+## Complete Example
+
+Here's a complete example combining multiple components:
+
+```kotlin
+import gg.essential.api.EssentialAPI
+import gg.essential.api.gui.EssentialGUI
+import gg.essential.api.gui.buildEmulatedPlayer
+import gg.essential.api.gui.buildConfirmationModal
+import gg.essential.elementa.ElementaVersion
+import gg.essential.elementa.components.UIText
+import gg.essential.elementa.dsl.*
+import gg.essential.elementa.state.BasicState
+
+class ProfileViewer(profile: GameProfile) : EssentialGUI(
+    ElementaVersion.V5,
+    "Profile Viewer"
+) {
+    private val showCapeState = BasicState(true)
+    
+    init {
+        // Add emulated player
+        val player = EssentialAPI.getEssentialComponentFactory()
+            .buildEmulatedPlayer {
+                this.profile = profile
+                showCapeState = this@ProfileViewer.showCapeState
+                draggable = true
+                renderNameTag = true
+            }
+        
+        player.constrain {
+            x = 20.pixels
+            y = 20.pixels
+            width = 200.pixels
+            height = 350.pixels
+        } childOf content
+        
+        // Add player name
+        UIText(profile.name).constrain {
+            x = SiblingConstraint(20f)
+            y = 20.pixels
+        } childOf content
+        
+        // Add delete button
+        createDeleteButton()
+    }
+    
+    private fun createDeleteButton() {
+        UIText("Delete Profile").constrain {
+            x = 240.pixels
+            y = 60.pixels
+        }.onMouseClick {
+            showDeleteConfirmation()
+        } childOf content
+    }
+    
+    private fun showDeleteConfirmation() {
+        val modal = EssentialAPI.getEssentialComponentFactory()
+            .buildConfirmationModal {
+                text = "Delete Profile"
+                secondaryText = "Are you sure? This cannot be undone."
+                confirmButtonText = "Delete"
+                denyButtonText = "Cancel"
+                
+                onConfirm = { _ ->
+                    deleteProfile()
+                    restorePreviousScreen()
+                }
+            }
+        
+        // Show modal (implementation depends on your setup)
+        displayModal(modal)
+    }
+    
+    private fun deleteProfile() {
+        // Delete logic
+    }
+}
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use States for Dynamic Updates">
+    When you need to update component properties dynamically, use Elementa states:
+    ```kotlin
+    val profileState = BasicState(player.wrapped())
+    wrappedProfileState = profileState
+    // Later: profileState.set(newProfile)
+    ```
+  </Accordion>
+  
+  <Accordion title="Size Emulated Players Appropriately">
+    Emulated players look best at reasonable sizes:
+    ```kotlin
+    width = 150.pixels to 250.pixels
+    height = 250.pixels to 400.pixels
+    ```
+  </Accordion>
+  
+  <Accordion title="Validate User Input in Modals">
+    Always validate user input in confirmation modals:
+    ```kotlin
+    onConfirm = { userInput ->
+        if (userInput.equals("DELETE", ignoreCase = true)) {
+            performDelete()
+        }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Use WrappedGameProfile">
+    Prefer `wrappedProfileState` over `profileState` because `GameProfile` has broken equals/hashCode:
+    ```kotlin
+    wrappedProfileState = BasicState(profile.wrapped())
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Related APIs
+
+<CardGroup cols={2}>
+  <Card title="EssentialGUI" icon="window" href="/api/gui/overview">
+    Create custom GUI screens
+  </Card>
+  <Card title="Elementa" icon="code" href="/api/gui/elementa">
+    Learn the Elementa framework
+  </Card>
+  <Card title="Notifications" icon="bell" href="/api/gui/notifications">
+    Display notifications
+  </Card>
+</CardGroup>

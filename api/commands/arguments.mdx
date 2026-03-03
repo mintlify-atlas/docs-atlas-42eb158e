@@ -1,0 +1,323 @@
+---
+title: "Command Arguments"
+description: "Understanding Essential's automatic argument parsing system"
+---
+
+The Command API's most powerful feature is automatic argument parsing based on function parameters. Simply define parameters with the desired type, and Essential handles the rest.
+
+## Basic Argument Types
+
+Essential provides built-in parsers for common types:
+
+- `String` - Text arguments
+- `Int` - Integer numbers
+- `Double` - Decimal numbers
+- `Boolean` - True/false values
+- `Float` - Single-precision decimals
+
+### Example
+
+```kotlin
+@DefaultHandler
+fun handle(name: String, age: Int, height: Double, enabled: Boolean) {
+    // /mycommand John 25 5.9 true
+}
+```
+
+## Optional Arguments
+
+Arguments can be optional using different syntax in Kotlin and Java:
+
+<CodeGroup>
+```kotlin Kotlin
+@DefaultHandler
+fun handle(number: Int, choice: Boolean?) {
+    // number is required
+    // choice is optional (nullable)
+}
+```
+
+```java Java
+@DefaultHandler
+public void handle(int number, Optional<Boolean> choice) {
+    // number is required
+    // choice is Optional
+}
+```
+</CodeGroup>
+
+### How It Works
+
+- **Kotlin**: Use nullable types (`Type?`)
+- **Java**: Use `java.util.Optional<Type>`
+
+### Behavior
+
+| User Input | Kotlin Result | Java Result |
+|-----------|--------------|-------------|
+| `/cmd 5` | `handle(5, null)` | `handle(5, Optional.empty())` |
+| `/cmd 5 true` | `handle(5, true)` | `handle(5, Optional.of(true))` |
+| `/cmd 5 false` | `handle(5, false)` | `handle(5, Optional.of(false))` |
+
+## String Argument Annotations
+
+String parameters have special annotations to control parsing behavior:
+
+### @Greedy
+
+Marks a parameter as greedy, consuming all remaining arguments:
+
+```kotlin
+@DefaultHandler
+fun handle(target: String, @Greedy message: String) {
+    // /msg Steve Hello, how are you?
+    // target = "Steve"
+    // message = "Hello, how are you?"
+}
+```
+
+<Warning>
+The `@Greedy` annotation should only be used on the last parameter, as it consumes all remaining input.
+</Warning>
+
+### @Quotable
+
+Allows string parameters to be quoted for multi-word input:
+
+```kotlin
+@DefaultHandler
+fun handle(@Quotable name: String, age: Int) {
+    // /cmd "John Doe" 25
+    // name = "John Doe"
+    // age = 25
+
+    // /cmd John 25
+    // name = "John"
+    // age = 25
+}
+```
+
+If quotes are present, the entire quoted string is captured. Otherwise, only the first word is used.
+
+### @Take
+
+Consumes a specific number of words:
+
+```kotlin
+@DefaultHandler
+fun handle(@Take(3) coordinates: String) {
+    // /cmd 100 64 -200
+    // coordinates = "100 64 -200"
+}
+```
+
+**Parameters:**
+- `value: Int` - Number of words to consume
+- `allowLess: Boolean = true` - Whether to allow fewer words
+
+If `allowLess` is `false` and not enough words are provided, an error is thrown and the usage message is displayed.
+
+<Note>
+For complex multi-word parsing, consider creating a custom `ArgumentParser` instead of using `@Take`.
+</Note>
+
+## Constrained Arguments
+
+### @Options
+
+Restricts arguments to a specific set of values:
+
+```kotlin
+@SubCommand("gamemode")
+fun gamemode(@Options(["survival", "creative", "adventure", "spectator"]) mode: String) {
+    // Only allows the specified game modes
+}
+```
+
+This is particularly useful for nested subcommands or enum-like behavior.
+
+### @DisplayName
+
+Provides custom names for parameters in usage messages:
+
+```kotlin
+@DefaultHandler
+fun handle(
+    @DisplayName("player") target: String,
+    @DisplayName("amount") count: Int
+) {
+    // Usage: /mycommand <player> <amount>
+}
+```
+
+This is useful when:
+- Your build process strips parameter names
+- You want more descriptive names in help messages
+
+## Custom Argument Types
+
+You can parse custom types by implementing `ArgumentParser` and registering it:
+
+### 1. Create the Parser
+
+```kotlin
+import gg.essential.api.commands.ArgumentParser
+import gg.essential.api.commands.ArgumentQueue
+import java.lang.reflect.Parameter
+
+class PlayerParser : ArgumentParser<Player> {
+    override fun parse(arguments: ArgumentQueue, param: Parameter): Player? {
+        val name = arguments.poll()
+        return findPlayerByName(name)
+    }
+
+    override fun complete(arguments: ArgumentQueue, param: Parameter): List<String> {
+        return getAllPlayerNames()
+    }
+}
+```
+
+### 2. Register the Parser
+
+```kotlin
+EssentialAPI.getCommandRegistry().registerParser(Player::class.java, PlayerParser())
+```
+
+### 3. Use in Commands
+
+```kotlin
+@DefaultHandler
+fun handle(player: Player) {
+    // Automatically parsed using PlayerParser
+    println("Found player: ${player.name}")
+}
+```
+
+## ArgumentQueue API
+
+When creating custom parsers, you work with `ArgumentQueue`:
+
+```kotlin
+interface ArgumentQueue {
+    /**
+     * Poll the next argument, removing it from the queue.
+     * Throws an exception if no arguments are left.
+     */
+    fun poll(): String
+
+    /**
+     * Peek at the next argument without removing it.
+     * Returns null if no arguments are left.
+     */
+    fun peek(): String?
+
+    /**
+     * Whether any more arguments have been passed.
+     */
+    fun isEmpty(): Boolean
+}
+```
+
+### Example Parser Using ArgumentQueue
+
+```kotlin
+class CoordinateParser : ArgumentParser<Coordinate> {
+    override fun parse(arguments: ArgumentQueue, param: Parameter): Coordinate? {
+        if (arguments.isEmpty()) return null
+
+        val x = arguments.poll().toIntOrNull() ?: return null
+        val y = arguments.poll().toIntOrNull() ?: return null
+        val z = arguments.poll().toIntOrNull() ?: return null
+
+        return Coordinate(x, y, z)
+    }
+}
+```
+
+## Validation and Error Handling
+
+When argument parsing fails, Essential automatically:
+
+1. Displays an error message
+2. Shows the command usage
+3. Indicates which parameter failed
+
+### Example Error
+
+```kotlin
+@DefaultHandler
+fun handle(number: Int, choice: Boolean?) {
+    // ...
+}
+```
+
+User input: `/mycommand abc true`
+
+Output:
+```
+Usage: /mycommand <number> [choice]
+```
+
+## Complete Example
+
+Here's a comprehensive example using multiple argument features:
+
+```kotlin
+import gg.essential.api.commands.*
+
+object MessageCommand : Command("msg") {
+    @DefaultHandler
+    fun sendMessage(
+        @DisplayName("player") target: String,
+        @Greedy @DisplayName("message") text: String
+    ) {
+        println("Sending to $target: $text")
+    }
+
+    @SubCommand("format")
+    fun sendFormatted(
+        @DisplayName("player") target: String,
+        @Options(["bold", "italic", "underline"]) style: String,
+        @Quotable @DisplayName("message") text: String
+    ) {
+        println("Sending $style message to $target: $text")
+    }
+
+    @SubCommand("coords")
+    fun sendWithCoords(
+        @DisplayName("player") target: String,
+        @Take(3) coordinates: String,
+        @Greedy message: String?
+    ) {
+        println("Coords: $coordinates, Message: ${message ?: "none"}")
+    }
+}
+```
+
+Usage examples:
+```
+/msg Steve Hello there!
+/msg Steve bold "This is bold"
+/msg Steve coords 100 64 -200 Check this out
+```
+
+## Annotation Reference
+
+| Annotation | Target | Description |
+|-----------|--------|-------------|
+| `@Greedy` | String parameter | Consumes all remaining arguments |
+| `@Quotable` | String parameter | Allows quoted multi-word input |
+| `@Take(n)` | String parameter | Consumes exactly n words |
+| `@Options([...])` | String parameter | Restricts to specific values |
+| `@DisplayName("...")` | Any parameter | Custom name in usage messages |
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Subcommands" icon="sitemap" href="/api/commands/subcommands">
+    Learn about creating subcommands
+  </Card>
+  <Card title="Registry" icon="database" href="/api/commands/registry">
+    Register custom argument parsers
+  </Card>
+</CardGroup>

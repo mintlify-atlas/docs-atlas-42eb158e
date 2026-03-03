@@ -1,0 +1,227 @@
+---
+title: "Dependency Injection"
+description: "Essential's DI system powered by Kodein"
+---
+
+## Overview
+
+Essential uses Dependency Injection (DI) to provide instances of its API interfaces. The library [Kodein](https://kodein.org/di/) is used to power Essential's DI system.
+
+DI provides a cleaner alternative to static method calls and allows you to easily access Essential's APIs throughout your codebase.
+
+## Basic Usage
+
+### Kotlin
+
+Use the `get()` function to retrieve instances from the DI container:
+
+```kotlin
+import gg.essential.api.utils.get
+
+val api = get<EssentialAPI>()
+val notifications = get<Notifications>()
+val commandRegistry = get<CommandRegistry>()
+```
+
+The `get()` function is a utility that quickly retrieves an instance from the dependency injection framework. The generic type `T` is the class that is looked up.
+
+**Signature:**
+```kotlin
+inline fun <reified T : Any> get(): T
+```
+
+### Java
+
+For Java, use the static methods on `EssentialAPI`:
+
+```java
+EssentialAPI api = EssentialAPI.getInstance();
+Notifications notifications = EssentialAPI.getNotifications();
+CommandRegistry registry = EssentialAPI.getCommandRegistry();
+```
+
+## The DI Class
+
+The `DI` abstract class provides access to Essential's dependency injection engine.
+
+### Accessing DI
+
+```kotlin
+val di = EssentialAPI.getInstance().di()
+// or
+val di = get<DI>()
+```
+
+### Adding Custom Modules
+
+You can customize Essential's DI by making your own types available and usable in your project using the `addModule()` method.
+
+```kotlin
+abstract fun addModule(module: org.kodein.di.DI.Module)
+```
+
+**Example:**
+
+```kotlin
+import org.kodein.di.DI
+import org.kodein.di.bind
+import org.kodein.di.singleton
+import gg.essential.api.utils.get
+
+// Create your module
+val myModule = DI.Module("MyModule") {
+    bind<MyService>() with singleton { MyServiceImpl() }
+    bind<MyRepository>() with singleton { MyRepositoryImpl() }
+}
+
+// Add it to Essential's DI
+val di = get<DI>()
+di.addModule(myModule)
+
+// Now you can retrieve your types via DI
+val service = get<MyService>()
+```
+
+For information about creating modules, see the [Kodein documentation](https://docs.kodein.org/kodein-di/7.6/core/modules-inheritance.html).
+
+## DI Implementation
+
+Essential's `DI` class implements Kodein's `DIAware` interface, giving it access to all of Kodein's dependency injection features.
+
+```kotlin
+abstract class DI : DIAware {
+    abstract fun addModule(module: org.kodein.di.DI.Module)
+    
+    protected fun init() {
+        essentialDI = this
+    }
+}
+```
+
+## Checking DI Initialization
+
+You can check if Essential's DI has been initialized:
+
+```kotlin
+import gg.essential.api.utils.initialised
+
+if (initialised) {
+    // DI is ready
+    val api = get<EssentialAPI>()
+}
+```
+
+## Available Types
+
+The following types are available through Essential's DI system:
+
+- `EssentialAPI` - Main API interface
+- `CommandRegistry` - Command registration
+- `Notifications` - Notification system
+- `EssentialConfig` - Essential configuration
+- `GuiUtil` - GUI utilities
+- `MinecraftUtils` - Minecraft utilities
+- `ShutdownHookUtil` - Shutdown hooks
+- `ImageCache` - Image caching
+- `TrustedHostsUtil` - Trusted hosts
+- `EssentialComponentFactory` - Elementa components
+- `MojangAPI` - Mojang API wrapper
+- `OnboardingData` - TOS/onboarding data
+- `DI` - The DI system itself
+
+## Usage Examples
+
+### Simple DI Usage
+
+```kotlin
+import gg.essential.api.utils.get
+import gg.essential.api.gui.Notifications
+
+class MyMod {
+    private val notifications = get<Notifications>()
+    
+    fun showWelcome() {
+        notifications.push("Welcome", "Thanks for using my mod!")
+    }
+}
+```
+
+### Custom Module with Dependencies
+
+```kotlin
+import org.kodein.di.DI
+import org.kodein.di.bind
+import org.kodein.di.instance
+import org.kodein.di.singleton
+import gg.essential.api.utils.get
+import gg.essential.api.gui.Notifications
+
+interface MyService {
+    fun doSomething()
+}
+
+class MyServiceImpl(private val notifications: Notifications) : MyService {
+    override fun doSomething() {
+        notifications.push("Info", "Service called")
+    }
+}
+
+// Create module with dependencies from Essential's DI
+val myModule = DI.Module("MyModule") {
+    bind<MyService>() with singleton {
+        MyServiceImpl(instance())
+    }
+}
+
+// Add module
+val di = get<DI>()
+di.addModule(myModule)
+
+// Use your service
+val service = get<MyService>()
+service.doSomething()
+```
+
+### Multiple API Access
+
+```kotlin
+import gg.essential.api.utils.get
+import gg.essential.api.commands.CommandRegistry
+import gg.essential.api.gui.Notifications
+import gg.essential.api.config.EssentialConfig
+
+class MyPlugin {
+    private val commands = get<CommandRegistry>()
+    private val notifications = get<Notifications>()
+    private val config = get<EssentialConfig>()
+    
+    fun initialize() {
+        commands.registerCommand(MyCommand())
+        
+        if (config.essentialFull) {
+            notifications.push("Info", "Essential Full detected")
+        }
+    }
+}
+```
+
+## When to Use DI vs Static Access
+
+### Use DI When:
+- Building larger applications with multiple components
+- You want to inject dependencies into your classes
+- You need testability and mock support
+- You prefer constructor injection patterns
+
+### Use Static Access When:
+- Making quick one-off API calls
+- Working in Java without DI framework
+- You prefer explicit static method calls
+- Simplicity is preferred over flexibility
+
+## Source Reference
+
+- DI Class: `api/src/main/kotlin/gg/essential/api/DI.kt`
+- DI Utilities: `api/src/main/kotlin/gg/essential/api/utils/di.kt`
+- Package: `gg.essential.api`
+- External: [Kodein DI Documentation](https://kodein.org/di/)

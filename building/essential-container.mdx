@@ -1,0 +1,183 @@
+---
+title: Building Essential Container
+description: Build thin Essential Container mods for distribution
+---
+
+The Essential Container is a lightweight mod that downloads Essential on first launch, rather than bundling it directly.
+
+## What is Essential Container?
+
+The Essential Container is a thin mod which:
+- Does nothing but download Essential on first launch
+- Is available on essential.gg/download
+- Is installed by the Essential Installer
+- Does **not** contain a specific version of Essential
+- Downloads whatever version is latest at first launch
+
+<Note>
+  This is different from the jars published on Modrinth/CurseForge ("pinned" jars), which contain a specific version of Essential bundled with the loader.
+</Note>
+
+## Container vs Pinned Mods
+
+<AccordionGroup>
+  <Accordion title="Container Mod">
+    - Small file size (under 1 MB)
+    - No Essential code bundled
+    - Downloads latest Essential on first launch
+    - Available on essential.gg/download
+    - Used by the Essential Installer
+  </Accordion>
+
+  <Accordion title="Pinned Mod">
+    - Larger file size (includes Essential)
+    - Contains specific Essential version
+    - No download required on launch
+    - Available on Modrinth/CurseForge
+    - Built from: `versions/<MC-Version>/build/libs/pinned_*.jar`
+  </Accordion>
+</AccordionGroup>
+
+<Note>
+  For more technical details about container vs pinned mods, see `loader/docs/container-mods.md` in the source repository.
+</Note>
+
+## Container Platforms
+
+Since the container only contains code to load Essential (not to interact with Minecraft directly), there are only four different versions:
+
+<AccordionGroup>
+  <Accordion title="fabric">
+    For all Minecraft versions using Fabric mod loader.
+  </Accordion>
+
+  <Accordion title="launchwrapper">
+    For Forge on Minecraft 1.8.9 and 1.12.2 (legacy Forge versions).
+  </Accordion>
+
+  <Accordion title="modlauncher8">
+    For Forge on Minecraft 1.16.5 (modern Forge).
+  </Accordion>
+
+  <Accordion title="modlauncher9">
+    For Forge on Minecraft 1.17 and above (latest Forge).
+  </Accordion>
+</AccordionGroup>
+
+<Note>
+  For more technical details about these platforms, see `loader/docs/platforms.md` in the source repository.
+</Note>
+
+## Build Container
+
+To build the Essential Container for a specific platform:
+
+```bash
+./gradlew :loader:container:<platform>:build
+```
+
+### Examples
+
+<CodeGroup>
+```bash Fabric
+./gradlew :loader:container:fabric:build
+```
+
+```bash LaunchWrapper (1.8.9, 1.12.2 Forge)
+./gradlew :loader:container:launchwrapper:build
+```
+
+```bash ModLauncher8 (1.16.5 Forge)
+./gradlew :loader:container:modlauncher8:build
+```
+
+```bash ModLauncher9 (1.17+ Forge)
+./gradlew :loader:container:modlauncher9:build
+```
+</CodeGroup>
+
+## Build All Containers
+
+To build all container platforms at once:
+
+```bash
+./gradlew :loader:container:fabric:build :loader:container:launchwrapper:build :loader:container:modlauncher8:build :loader:container:modlauncher9:build
+```
+
+Or use a wildcard (if your shell supports it):
+
+```bash
+./gradlew :loader:container:*:build
+```
+
+## Output Files
+
+Built container jars are located at:
+
+```
+loader/container/<platform>/build/libs/
+```
+
+### Directory Structure
+
+```
+loader/container/
+├── fabric/build/libs/
+├── launchwrapper/build/libs/
+├── modlauncher8/build/libs/
+└── modlauncher9/build/libs/
+```
+
+## Platform Selection by Minecraft Version
+
+Choose the container platform based on your target Minecraft version and mod loader:
+
+| Minecraft Version | Mod Loader | Container Platform |
+|------------------|------------|-------------------|
+| 1.8.9 | Forge | `launchwrapper` |
+| 1.12.2 | Forge | `launchwrapper` |
+| 1.16.5 | Forge | `modlauncher8` |
+| 1.17+ | Forge | `modlauncher9` |
+| 1.18+ | Forge | `modlauncher9` |
+| 1.19+ | Forge | `modlauncher9` |
+| 1.20+ | Forge/NeoForge | `modlauncher9` |
+| 1.21+ | Forge/NeoForge | `modlauncher9` |
+| Any | Fabric | `fabric` |
+
+## Checksum Verification
+
+Container jars are included in the CI checksum verification:
+
+```bash
+sha256sum loader/container/{fabric,launchwrapper,modlauncher{8,9}}/build/libs/*
+```
+
+See the [Verification guide](/building/verification) for details.
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Distribution" icon="globe">
+    Container mods are used on essential.gg/download for users who want automatic updates.
+  </Card>
+  <Card title="Third-Party Integration" icon="puzzle-piece">
+    Third-party mods can embed the Essential Loader to integrate with Essential.
+  </Card>
+  <Card title="Essential Installer" icon="download">
+    The installer uses container mods to set up Essential.
+  </Card>
+  <Card title="Auto-Updates" icon="rotate">
+    Container mods automatically download the latest Essential version.
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Verify Your Build" icon="check" href="/building/verification">
+    Verify container checksums match official releases
+  </Card>
+  <Card title="Build Essential Mod" icon="hammer" href="/building/essential-mod">
+    Build the full Essential mod with pinned versions
+  </Card>
+</CardGroup>

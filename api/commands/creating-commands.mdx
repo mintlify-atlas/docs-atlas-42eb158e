@@ -1,0 +1,263 @@
+---
+title: "Creating Commands"
+description: "Learn how to create custom commands with Essential's Command API"
+---
+
+## Creating Your First Command
+
+To create a custom command, create a class or object that extends `Command`:
+
+```kotlin
+import gg.essential.api.commands.Command
+import gg.essential.api.commands.DefaultHandler
+
+object MyCommand : Command("mycommand") {
+    @DefaultHandler
+    fun handle() {
+        println("Command executed!")
+    }
+}
+```
+
+Then register it:
+
+```kotlin
+MyCommand.register()
+```
+
+## Kotlin vs Java
+
+The Command API works in both Kotlin and Java. Here's the same command in both languages:
+
+<CodeGroup>
+```kotlin Kotlin
+object MyCommand : Command("mycommand") {
+    @DefaultHandler
+    fun handle() {
+        println("Command executed!")
+    }
+}
+```
+
+```java Java
+public class MyCommand extends Command {
+    public MyCommand() {
+        super("mycommand");
+    }
+
+    @DefaultHandler
+    public void handle() {
+        System.out.println("Command executed!");
+    }
+}
+```
+</CodeGroup>
+
+<Note>
+In Kotlin, it's recommended to use `object` instead of `class` for commands to ensure a single instance.
+</Note>
+
+## Default Handler
+
+The `@DefaultHandler` annotation marks a function to be invoked when:
+
+1. The command has no subcommands, OR
+2. The user didn't specify a subcommand
+
+If no `@DefaultHandler` is specified and no subcommand is matched, the command's usage will be printed instead.
+
+```kotlin
+object MyCommand : Command("mycommand") {
+    @DefaultHandler
+    fun handle() {
+        // Called when user types: /mycommand
+    }
+
+    @SubCommand("test")
+    fun test() {
+        // Called when user types: /mycommand test
+    }
+}
+```
+
+## Command with Arguments
+
+Arguments are automatically parsed based on your function parameters:
+
+<CodeGroup>
+```kotlin Kotlin
+object MyCommand : Command("mycommand") {
+    @DefaultHandler
+    fun handle(number: Int, choice: Boolean?) {
+        // number is required
+        // choice is optional (nullable)
+        println("Number: $number, Choice: $choice")
+    }
+}
+```
+
+```java Java
+public class MyCommand extends Command {
+    public MyCommand() {
+        super("mycommand");
+    }
+
+    @DefaultHandler
+    public void handle(int number, Optional<Boolean> choice) {
+        // number is required
+        // choice is optional
+        System.out.println("Number: " + number + ", Choice: " + choice.orElse(null));
+    }
+}
+```
+</CodeGroup>
+
+### Usage Examples
+
+| User Input | Result |
+|-----------|--------|
+| `/mycommand 5` | `handle(5, null)` |
+| `/mycommand 5 true` | `handle(5, true)` |
+| `/mycommand 5 false` | `handle(5, false)` |
+| `/mycommand abc true` | Error: Usage printed |
+
+## Auto-Generated Usage Messages
+
+When a user provides invalid arguments, Essential automatically generates helpful usage messages:
+
+```
+Usage: /mycommand <number> [choice]
+```
+
+- `<required>` - Required parameters
+- `[optional]` - Optional parameters
+
+### Custom Parameter Names
+
+If your build process wipes parameter names, or you want custom names in the usage message, use the `@DisplayName` annotation:
+
+```kotlin
+@DefaultHandler
+fun handle(
+    @DisplayName("amount") number: Int,
+    @DisplayName("enabled") choice: Boolean?
+) {
+    // Usage: /mycommand <amount> [enabled]
+}
+```
+
+## Command Configuration
+
+### Constructor Parameters
+
+```kotlin
+abstract class Command(
+    val name: String,
+    val autoHelpSubcommand: Boolean = true,
+    val hideFromAutocomplete: Boolean = false
+)
+```
+
+#### name
+The command name. Your command will be invoked as `/$name`.
+
+#### autoHelpSubcommand
+Whether to automatically generate a help subcommand (i.e., `/$name help`) that shows all available subcommands, their usages, and descriptions.
+
+Default: `true`
+
+```kotlin
+object MyCommand : Command(
+    name = "mycommand",
+    autoHelpSubcommand = true
+)
+```
+
+#### hideFromAutocomplete
+Whether to hide this command from Minecraft's command tab completion.
+
+Default: `false`
+
+```kotlin
+object DebugCommand : Command(
+    name = "debug",
+    hideFromAutocomplete = true
+)
+```
+
+## Command Aliases
+
+Define global aliases using the `commandAliases` property:
+
+```kotlin
+object MyCommand : Command("mycommand") {
+    override val commandAliases = setOf(
+        Alias("mc"),
+        Alias("mycmd", hideFromAutocomplete = true)
+    )
+
+    @DefaultHandler
+    fun handle() {
+        // Can be invoked with /mycommand, /mc, or /mycmd
+    }
+}
+```
+
+Each `Alias` can optionally be hidden from autocomplete:
+
+```kotlin
+data class Alias(
+    val alias: String,
+    val hideFromAutocomplete: Boolean = false
+)
+```
+
+## Complete Example
+
+Here's a complete example with multiple features:
+
+```kotlin
+import gg.essential.api.commands.*
+
+object TeleportCommand : Command(
+    name = "tp",
+    autoHelpSubcommand = true
+) {
+    override val commandAliases = setOf(
+        Alias("teleport")
+    )
+
+    @DefaultHandler
+    fun handle(@DisplayName("player") target: String) {
+        // Teleport to player
+        println("Teleporting to $target")
+    }
+
+    @SubCommand("coords", description = "Teleport to coordinates")
+    fun coords(x: Int, y: Int, z: Int) {
+        println("Teleporting to $x, $y, $z")
+    }
+
+    @SubCommand("random", description = "Teleport to random location")
+    fun random(radius: Int?) {
+        val r = radius ?: 1000
+        println("Teleporting to random location within $r blocks")
+    }
+}
+
+// Register the command
+fun init() {
+    TeleportCommand.register()
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Arguments" icon="terminal" href="/api/commands/arguments">
+    Learn about the argument parsing system
+  </Card>
+  <Card title="Subcommands" icon="sitemap" href="/api/commands/subcommands">
+    Create complex command structures
+  </Card>
+</CardGroup>

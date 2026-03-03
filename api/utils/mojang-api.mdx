@@ -1,0 +1,323 @@
+---
+title: MojangAPI
+description: Wrapper for interacting with the Mojang API to fetch player data
+---
+
+The `MojangAPI` interface provides utilities for interacting with the [Mojang API](https://wiki.vg/Mojang_API), allowing you to fetch player information, profiles, and manage skins.
+
+## Accessing MojangAPI
+
+```kotlin
+import gg.essential.api.EssentialAPI
+
+val mojangAPI = EssentialAPI.getMojangAPI()
+```
+
+## Player Lookups
+
+### getUUID
+
+Retrieve a player's UUID from their username.
+
+<Tabs>
+  <Tab title="Kotlin">
+    ```kotlin
+    import java.util.UUID
+
+    val future = mojangAPI.getUUID("Notch")
+    future?.thenAccept { uuid: UUID ->
+        println("UUID for Notch: $uuid")
+    }
+    ```
+  </Tab>
+  <Tab title="Java">
+    ```java
+    import java.util.UUID;
+    import java.util.concurrent.CompletableFuture;
+
+    CompletableFuture<UUID> future = mojangAPI.getUUID("Notch");
+    if (future != null) {
+        future.thenAccept(uuid -> {
+            System.out.println("UUID for Notch: " + uuid);
+        });
+    }
+    ```
+  </Tab>
+</Tabs>
+
+**Parameters:**
+- `name: String` - The player's username
+
+**Returns:** `CompletableFuture<UUID>?` - A future that resolves to the player's UUID, or `null` if the request fails
+
+**Reference:** [Mojang API - Username to UUID](https://wiki.vg/Mojang_API#Username_to_UUID)
+
+### getName
+
+Retrieve a player's username from their UUID.
+
+```kotlin
+import java.util.UUID
+
+val uuid = UUID.fromString("069a79f4-44e9-4726-a5be-fca90e38aaf5")
+val future = mojangAPI.getName(uuid)
+
+future?.thenAccept { name: String ->
+    println("Username: $name")
+}
+```
+
+**Parameters:**
+- `uuid: UUID` - The player's UUID
+
+**Returns:** `CompletableFuture<String>?` - A future that resolves to the player's username, or `null` if the request fails
+
+**Reference:** [Mojang API - Usernames to UUIDs](https://wiki.vg/Mojang_API#Usernames_to_UUIDs)
+
+## Player Profiles
+
+### getProfile
+
+Retrieve the complete player profile including skin and cape information.
+
+```kotlin
+val uuid = UUID.fromString("069a79f4-44e9-4726-a5be-fca90e38aaf5")
+val profile = mojangAPI.getProfile(uuid)
+
+if (profile != null) {
+    println("Player: ${profile.name}")
+    println("UUID: ${profile.id}")
+    
+    // Access textures
+    val textures = profile.textures
+    val skinUrl = textures.textures?.skin?.url
+    val capeUrl = textures.textures?.cape?.url
+    
+    println("Skin URL: $skinUrl")
+    println("Cape URL: $capeUrl")
+}
+```
+
+**Parameters:**
+- `uuid: UUID` - The player's UUID
+
+**Returns:** `Profile?` - The player's profile object, or `null` if the request fails
+
+**Reference:** [Mojang API - UUID to Profile and Skin/Cape](https://wiki.vg/Mojang_API#UUID_to_Profile_and_Skin.2FCape)
+
+## Skin Management
+
+### changeSkin
+
+Send a skin change request to Mojang. The player must rejoin the server to see the new skin.
+
+```kotlin
+import gg.essential.api.utils.mojang.Model
+import java.util.UUID
+
+val accessToken = "player_session_token"
+val uuid = UUID.fromString("069a79f4-44e9-4726-a5be-fca90e38aaf5")
+val skinUrl = "https://example.com/skin.png"
+
+val response = mojangAPI.changeSkin(
+    accessToken = accessToken,
+    uuid = uuid,
+    model = Model.STEVE,
+    url = skinUrl
+)
+
+if (response != null) {
+    println("Skin changed successfully: ${response.name}")
+}
+```
+
+**Parameters:**
+- `accessToken: String` - Session token for authentication with Mojang
+- `uuid: UUID` - Player UUID (must match the session token)
+- `model: Model` - Skin model type (STEVE or ALEX)
+- `url: String` - Image URL of the new skin
+
+**Returns:** `SkinResponse?` - Response from Mojang, or `null` if the request fails
+
+**Reference:** [Mojang API - Change Skin](https://wiki.vg/Mojang_API#Change_Skin)
+
+## Data Types
+
+### Profile
+
+```kotlin
+data class Profile(
+    val id: String?,           // Player UUID (no dashes)
+    val name: String?,         // Player username
+    val properties: List<Property>?
+) {
+    val textures: ProfileTextures  // Decoded skin and cape data
+}
+```
+
+### ProfileTextures
+
+```kotlin
+data class ProfileTextures(
+    val timestamp: Long?,
+    val profileId: String?,
+    val profileName: String?,
+    val textures: Textures?
+)
+
+data class Textures(
+    val skin: TextureURL?,
+    val cape: TextureURL?
+)
+
+data class TextureURL(val url: String?)
+```
+
+### Model
+
+Skin model enumeration:
+
+```kotlin
+enum class Model(
+    val type: String,      // Internal Minecraft name
+    val variant: String    // Mojang service name
+) {
+    STEVE("default", "classic"),
+    ALEX("slim", "slim");
+    
+    companion object {
+        fun byType(str: String): Model?
+        fun byTypeOrDefault(str: String): Model
+        fun byVariant(str: String): Model?
+        fun byVariantOrDefault(str: String): Model
+    }
+}
+```
+
+### SkinResponse
+
+```kotlin
+data class SkinResponse(
+    val id: String,
+    val name: String,
+    val skins: List<Skin>?,
+    val capes: List<Skin>
+)
+
+data class Skin(
+    val id: String,
+    val state: String,
+    val url: String,
+    val variant: String
+)
+```
+
+### Name (Deprecated)
+
+```kotlin
+@Deprecated("Name history has been removed from the Mojang API")
+data class Name(
+    val name: String?,
+    val changedToAt: Long?
+)
+```
+
+## Method Reference
+
+```kotlin
+interface MojangAPI {
+    fun getUUID(name: String): CompletableFuture<UUID>?
+    fun getName(uuid: UUID): CompletableFuture<String>?
+    fun getProfile(uuid: UUID): Profile?
+    fun changeSkin(
+        accessToken: String,
+        uuid: UUID,
+        model: Model,
+        url: String
+    ): SkinResponse?
+    
+    @Deprecated("Name history has been removed from the Mojang API")
+    fun getNameHistory(uuid: UUID?): List<Name?>?
+}
+```
+
+## Common Use Cases
+
+### Looking Up Player Information
+
+```kotlin
+import gg.essential.api.EssentialAPI
+
+fun lookupPlayer(username: String) {
+    val api = EssentialAPI.getMojangAPI()
+    
+    api.getUUID(username)?.thenAccept { uuid ->
+        println("Found UUID: $uuid")
+        
+        // Now fetch the full profile
+        val profile = api.getProfile(uuid)
+        if (profile != null) {
+            println("Player name: ${profile.name}")
+            println("Skin URL: ${profile.textures.textures?.skin?.url}")
+        }
+    }
+}
+```
+
+### Displaying Player Skins
+
+```kotlin
+fun getPlayerSkinUrl(uuid: UUID): String? {
+    val api = EssentialAPI.getMojangAPI()
+    val profile = api.getProfile(uuid) ?: return null
+    
+    return profile.textures.textures?.skin?.url
+}
+
+fun getPlayerCapeUrl(uuid: UUID): String? {
+    val api = EssentialAPI.getMojangAPI()
+    val profile = api.getProfile(uuid) ?: return null
+    
+    return profile.textures.textures?.cape?.url
+}
+```
+
+### Async Player Lookup
+
+```kotlin
+import gg.essential.api.utils.Multithreading
+
+fun asyncPlayerLookup(username: String, callback: (UUID?) -> Unit) {
+    val api = EssentialAPI.getMojangAPI()
+    
+    Multithreading.runAsync {
+        val future = api.getUUID(username)
+        future?.thenAccept { uuid ->
+            callback(uuid)
+        } ?: callback(null)
+    }
+}
+```
+
+### Checking Skin Model
+
+```kotlin
+import gg.essential.api.utils.mojang.Model
+
+fun getPlayerSkinModel(uuid: UUID): Model {
+    val api = EssentialAPI.getMojangAPI()
+    val profile = api.getProfile(uuid)
+    
+    // Check if player uses slim (Alex) or classic (Steve) model
+    val variant = profile?.textures?.textures?.skin?.variant ?: "classic"
+    return Model.byVariantOrDefault(variant)
+}
+```
+
+## Notes
+
+- All network operations return futures or nullable types - always handle failure cases
+- The Mojang API has rate limits - cache responses when possible
+- Name history endpoint has been deprecated by Mojang and is no longer functional
+- Skin changes require valid authentication tokens
+- Players must rejoin servers to see skin changes take effect

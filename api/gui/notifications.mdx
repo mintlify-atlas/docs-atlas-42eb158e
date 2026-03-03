@@ -1,0 +1,501 @@
+---
+title: 'Notifications'
+description: 'Display user notifications with the Essential Notifications API'
+icon: 'bell'
+---
+
+The Notifications API allows you to display Windows 10-style notifications that slide out from the bottom-right corner of the screen.
+
+## Overview
+
+Notifications appear in the bottom-right corner, sliding in from the right side. They:
+- Last approximately 4 seconds by default
+- Pause when hovered by the user
+- Support custom durations, actions, and styling
+- Can include custom components and icons
+
+## Getting Started
+
+### Access the Notifications API
+
+```kotlin
+import gg.essential.api.EssentialAPI
+
+val notifications = EssentialAPI.getNotifications()
+```
+
+### Simple Notification
+
+Display a basic notification:
+
+```kotlin
+notifications.push(
+    "Achievement Unlocked",
+    "You've played for 100 hours!"
+)
+```
+
+## Basic Methods
+
+### push(title, message)
+
+Display a non-interactive notification:
+
+```kotlin
+notifications.push(
+    "Welcome",
+    "Thanks for using our mod!"
+)
+```
+
+### push(title, message, duration)
+
+Specify a custom duration (in seconds):
+
+```kotlin
+notifications.push(
+    "Important Update",
+    "Please restart your game",
+    duration = 10f // 10 seconds
+)
+```
+
+## Interactive Notifications
+
+### With Click Action
+
+Execute code when the user clicks the notification:
+
+```kotlin
+notifications.push(
+    "Friend Request",
+    "Player123 wants to be your friend"
+) {
+    onAction = {
+        // Handle the click
+        println("Opening friend request!")
+        // Open friend GUI, etc.
+    }
+}
+```
+
+### With Duration and Action
+
+Kotlin (using builder):
+```kotlin
+notifications.push(
+    "New Message",
+    "You have 3 unread messages",
+    duration = 8f
+) {
+    onAction = {
+        openMessagesGUI()
+    }
+}
+```
+
+Java:
+```java
+notifications.pushWithDurationAndAction(
+    "New Message",
+    "You have 3 unread messages",
+    8f,
+    () -> openMessagesGUI()
+);
+```
+
+### With Close Callback
+
+Kotlin:
+```kotlin
+notifications.push(
+    "Download Started",
+    "Downloading resource pack...",
+    duration = 5f
+) {
+    onAction = {
+        println("User clicked notification")
+    }
+    onClose = {
+        println("Notification closed")
+    }
+}
+```
+
+Java:
+```java
+notifications.pushWithDurationActionAndClose(
+    "Download Started",
+    "Downloading resource pack...",
+    5f,
+    () -> System.out.println("User clicked notification"),
+    () -> System.out.println("Notification closed")
+);
+```
+
+## Advanced Configuration
+
+### NotificationBuilder
+
+Use the builder for full customization:
+
+```kotlin
+notifications.push(
+    "Custom Notification",
+    "This notification has custom settings"
+) {
+    duration = 6f
+    type = NotificationType.WARNING
+    trimTitle = false
+    trimMessage = false
+    
+    onAction = {
+        println("Clicked!")
+    }
+    
+    onClose = {
+        println("Closed!")
+    }
+}
+```
+
+### Builder Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `duration` | `Float` | How long (in seconds) the notification stays on screen (default: 4) |
+| `onAction` | `() -> Unit` | Callback when the user clicks the notification |
+| `onClose` | `() -> Unit` | Callback when the notification closes |
+| `type` | `NotificationType` | Notification color scheme |
+| `trimTitle` | `Boolean` | Whether to cut off title at first line (default: true) |
+| `trimMessage` | `Boolean` | Whether to cut off message at 3 lines (default: true) |
+| `timerEnabled` | `State<Boolean>` | State controlling whether the timer progresses |
+| `elementaVersion` | `ElementaVersion` | Elementa version for custom components |
+| `uniqueId` | `Any?` | Unique ID to prevent duplicate notifications |
+
+## Notification Types
+
+Set the notification type to change the title color:
+
+```kotlin
+import gg.essential.api.gui.NotificationType
+
+// General notification (default)
+notifications.push("Info", "General message") {
+    type = NotificationType.GENERAL
+}
+
+// Info notification (blue)
+notifications.push("Tip", "Did you know...") {
+    type = NotificationType.INFO
+}
+
+// Warning notification (yellow)
+notifications.push("Warning", "Low memory") {
+    type = NotificationType.WARNING
+}
+
+// Error notification (red)
+notifications.push("Error", "Connection failed") {
+    type = NotificationType.ERROR
+}
+
+// Discord notification (Discord blurple)
+notifications.push("Discord", "New message") {
+    type = NotificationType.DISCORD
+}
+```
+
+## Preventing Duplicates
+
+Use `uniqueId` to prevent showing the same notification multiple times:
+
+```kotlin
+// Using an object as unique ID
+object MyNotificationId
+
+notifications.push(
+    "Already Connected",
+    "You are already connected to the server"
+) {
+    uniqueId = MyNotificationId
+}
+
+// Or use an anonymous class
+notifications.push(
+    "Already Connected",
+    "You are already connected to the server"
+) {
+    uniqueId = object {}.javaClass
+}
+
+// Or use a prefixed string with your mod ID
+notifications.push(
+    "Custom Event",
+    "Something happened"
+) {
+    uniqueId = "mymodid:custom_event"
+}
+```
+
+<Warning>
+If using a String as `uniqueId`, prefix it with your mod ID (e.g., `"mymodid:notification"`) to avoid conflicts with other mods.
+</Warning>
+
+## Custom Components
+
+Add custom Elementa components to notifications:
+
+```kotlin
+import gg.essential.api.gui.Slot
+import gg.essential.elementa.components.UIImage
+import java.net.URL
+
+notifications.push(
+    "Achievement",
+    "You found a rare item!"
+) {
+    elementaVersion = ElementaVersion.V5
+    
+    // Add a custom icon
+    withCustomComponent(
+        Slot.ICON,
+        UIImage.ofResource("/assets/mymod/achievement_icon.png")
+    )
+    
+    // Or add a preview image
+    withCustomComponent(
+        Slot.LARGE_PREVIEW,
+        UIImage.ofURL(URL("https://example.com/preview.png"))
+    )
+}
+```
+
+### Component Slots
+
+| Slot | Description |
+|------|-------------|
+| `ICON` | Small icon position (left side) |
+| `SMALL_PREVIEW` | Small to mid-sized preview |
+| `LARGE_PREVIEW` | Large preview image |
+| `ACTION` | Action button area |
+
+## Manual Dismissal
+
+Dismiss notifications programmatically:
+
+```kotlin
+notifications.push(
+    "Processing",
+    "Please wait..."
+) {
+    duration = 999f // Very long duration
+    
+    onAction = {
+        // Dismiss when clicked
+        dismissNotification()
+    }
+    
+    // Or dismiss instantly without animation
+    // dismissNotificationInstantly()
+}
+```
+
+## Controlling the Timer
+
+Pause and resume the notification timer:
+
+```kotlin
+import gg.essential.elementa.state.BasicState
+
+val timerState = BasicState(true)
+
+notifications.push(
+    "Paused Timer",
+    "This notification timer can be controlled"
+) {
+    timerEnabled = timerState
+}
+
+// Pause the timer
+timerState.set(false)
+
+// Resume the timer
+timerState.set(true)
+```
+
+## Examples
+
+### Friend Request Notification
+
+```kotlin
+fun notifyFriendRequest(playerName: String) {
+    EssentialAPI.getNotifications().push(
+        "Friend Request",
+        "$playerName wants to be your friend",
+        duration = 10f
+    ) {
+        type = NotificationType.INFO
+        
+        onAction = {
+            // Open friend request GUI
+            openFriendRequestGUI(playerName)
+        }
+        
+        uniqueId = "mymod:friend_request:$playerName"
+    }
+}
+```
+
+### Error Notification
+
+```kotlin
+fun notifyError(message: String) {
+    EssentialAPI.getNotifications().push(
+        "Error",
+        message,
+        duration = 8f
+    ) {
+        type = NotificationType.ERROR
+        trimMessage = false
+    }
+}
+```
+
+### Achievement with Icon
+
+```kotlin
+fun showAchievement(name: String, description: String, iconPath: String) {
+    EssentialAPI.getNotifications().push(
+        name,
+        description
+    ) {
+        type = NotificationType.INFO
+        duration = 6f
+        elementaVersion = ElementaVersion.V5
+        
+        withCustomComponent(
+            Slot.ICON,
+            UIImage.ofResource(iconPath)
+        )
+    }
+}
+```
+
+### Progress Notification
+
+```kotlin
+fun showDownloadNotification() {
+    val timerState = BasicState(false) // Paused initially
+    
+    EssentialAPI.getNotifications().push(
+        "Downloading",
+        "Resource pack is downloading...",
+        duration = 30f
+    ) {
+        type = NotificationType.INFO
+        timerEnabled = timerState
+        
+        onAction = {
+            // Cancel download
+            cancelDownload()
+            dismissNotification()
+        }
+        
+        onClose = {
+            // Cleanup
+            cleanupDownload()
+        }
+    }
+    
+    // Start timer when download completes
+    onDownloadComplete {
+        timerState.set(true)
+    }
+}
+```
+
+## Java Examples
+
+### Basic Notification
+
+```java
+import gg.essential.api.EssentialAPI;
+
+EssentialAPI.getNotifications().push(
+    "Welcome",
+    "Thanks for using our mod!"
+);
+```
+
+### With Action
+
+```java
+EssentialAPI.getNotifications().pushWithAction(
+    "Click Me",
+    "Click this notification for more info",
+    () -> {
+        System.out.println("Notification clicked!");
+    }
+);
+```
+
+### With Builder
+
+```java
+import gg.essential.api.gui.NotificationType;
+
+EssentialAPI.getNotifications().push(
+    "Warning",
+    "Something went wrong",
+    4f,
+    () -> {},
+    () -> {},
+    builder -> {
+        builder.setType(NotificationType.WARNING);
+        builder.setTrimMessage(false);
+    }
+);
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use Appropriate Types">
+    Choose the right notification type for your message:
+    - `GENERAL`: Default notifications
+    - `INFO`: Tips, helpful information
+    - `WARNING`: Warnings that need attention
+    - `ERROR`: Error messages
+    - `DISCORD`: Discord-related notifications
+  </Accordion>
+  
+  <Accordion title="Set Appropriate Durations">
+    - Short messages: 3-4 seconds
+    - Important messages: 6-10 seconds
+    - Critical errors: 10+ seconds
+    - Don't make durations too long unless necessary
+  </Accordion>
+  
+  <Accordion title="Use Unique IDs for Spam Prevention">
+    Prevent duplicate notifications by setting a unique ID:
+    ```kotlin
+    uniqueId = "mymod:event_type"
+    ```
+  </Accordion>
+  
+  <Accordion title="Keep Messages Concise">
+    Notifications are meant to be quick. Keep titles and messages short and clear.
+  </Accordion>
+</AccordionGroup>
+
+## Related APIs
+
+<CardGroup cols={2}>
+  <Card title="EssentialGUI" icon="window" href="/api/gui/overview">
+    Create custom GUI screens
+  </Card>
+  <Card title="Components" icon="cube" href="/api/gui/components">
+    Use pre-built UI components
+  </Card>
+</CardGroup>

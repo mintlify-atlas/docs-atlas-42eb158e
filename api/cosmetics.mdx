@@ -1,0 +1,68 @@
+---
+title: "RenderCosmetic"
+description: "API for controlling cosmetic rendering on wearable items"
+---
+
+## Overview
+
+The `RenderCosmetic` interface is a marker interface that allows wearable items (armor) to override Essential's default cosmetic hiding behavior. When armor is equipped, Essential normally hides cosmetics on the respective body part. However, items implementing this interface will allow cosmetics to continue rendering.
+
+## Interface Definition
+
+```kotlin
+package gg.essential.api.cosmetics
+
+interface RenderCosmetic {}
+```
+
+## Usage
+
+Implement the `RenderCosmetic` interface on your armor item class to allow cosmetics to render even when the armor is equipped.
+
+### Example
+
+```java
+import gg.essential.api.cosmetics.RenderCosmetic;
+import net.minecraft.item.ItemArmor;
+
+public class TransparentHelmet extends ItemArmor implements RenderCosmetic {
+    public TransparentHelmet() {
+        super(ArmorMaterial.DIAMOND, 0, 0);
+    }
+}
+```
+
+### Kotlin Example
+
+```kotlin
+import gg.essential.api.cosmetics.RenderCosmetic
+import net.minecraft.item.ItemArmor
+
+class TransparentHelmet : ItemArmor(ArmorMaterial.DIAMOND, 0, 0), RenderCosmetic
+```
+
+## Behavior
+
+<Card title="Default Behavior" icon="eye-slash">
+  When armor is equipped, Essential hides cosmetics on the corresponding body part to prevent visual conflicts.
+</Card>
+
+<Card title="With RenderCosmetic" icon="eye">
+  When armor implementing `RenderCosmetic` is equipped, cosmetics continue to render as if no armor was equipped.
+</Card>
+
+## Use Cases
+
+- **Transparent or Glass Armor**: Armor that is see-through and won't visually conflict with cosmetics
+- **Decorative Items**: Non-protective wearable items that complement cosmetics rather than replace them
+- **Custom Cosmetic Items**: Mod-added items that work alongside Essential's cosmetic system
+
+## Notes
+
+<Warning>
+  This is a marker interface with no methods to implement. Simply adding `implements RenderCosmetic` to your item class is sufficient.
+</Warning>
+
+<Info>
+  This interface only affects cosmetic rendering behavior. It does not modify armor functionality or protection values.
+</Info>

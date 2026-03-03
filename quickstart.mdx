@@ -1,80 +1,660 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: "Quick start"
+description: "Get started with the Essential API for mod development"
 ---
 
-## Get started in three steps
+## Overview
 
-Get your documentation site running locally and make your first customization.
+Essential provides a powerful API for Minecraft mod developers, offering features like command registration, notifications, GUI components, and utilities. This guide will help you integrate Essential's API into your mod.
 
-### Step 1: Set up your local environment
+<Note>
+  **For players**: If you're looking to install Essential Mod as a player, see the [Installation guide](/installation) instead.
+</Note>
+
+## Prerequisites
+
+Before you begin, ensure you have:
+
+<CardGroup cols={2}>
+  <Card title="Java development environment" icon="mug-hot">
+    JDK 8 or higher (JDK 17+ for Minecraft 1.18+)
+  </Card>
+  <Card title="Minecraft mod project" icon="cube">
+    An existing Forge or Fabric mod project set up
+  </Card>
+</CardGroup>
+
+## Installation
+
+<Steps>
+  <Step title="Add Essential as a dependency">
+    Add Essential to your `build.gradle` or `build.gradle.kts` file:
+
+    <Tabs>
+      <Tab title="Gradle (Kotlin DSL)">
+        ```kotlin build.gradle.kts
+        repositories {
+            maven("https://repo.essential.gg/repository/maven-public")
+        }
+
+        dependencies {
+            // Use 'compileOnly' for runtime dependency (Essential required)
+            compileOnly("gg.essential:essential-1.8.9-forge:+")
+            
+            // Or use 'implementation' to embed Essential
+            // implementation("gg.essential:essential-1.8.9-forge:+")
+        }
+        ```
+      </Tab>
+      
+      <Tab title="Gradle (Groovy)">
+        ```groovy build.gradle
+        repositories {
+            maven {
+                url "https://repo.essential.gg/repository/maven-public"
+            }
+        }
+
+        dependencies {
+            compileOnly "gg.essential:essential-1.8.9-forge:+"
+        }
+        ```
+      </Tab>
+    </Tabs>
+
+    <Info>
+      Replace `essential-1.8.9-forge` with the appropriate artifact for your target Minecraft version and mod loader (e.g., `essential-1.20.1-fabric`).
+    </Info>
+  </Step>
+
+  <Step title="Sync your project">
+    Run `./gradlew build` or refresh your Gradle project in your IDE to download the Essential dependency
+  </Step>
+
+  <Step title="Verify the setup">
+    Ensure your IDE recognizes Essential classes by trying to import:
+    
+    ```java
+    import gg.essential.api.EssentialAPI;
+    ```
+  </Step>
+</Steps>
+
+## Your first Essential integration
+
+Let's create a simple command and notification using Essential's API.
+
+### Creating a command
+
+Essential's Command API automatically handles argument parsing and type conversion:
+
+<Tabs>
+  <Tab title="Kotlin">
+    ```kotlin MyCommand.kt
+    import gg.essential.api.commands.Command
+    import gg.essential.api.commands.DefaultHandler
+    import gg.essential.api.EssentialAPI
+
+    object MyCommand : Command("mycommand") {
+        
+        @DefaultHandler
+        fun handle() {
+            // Send a notification when command is executed
+            EssentialAPI.getNotifications().push(
+                "My Mod",
+                "Command executed successfully!"
+            )
+        }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Java">
+    ```java MyCommand.java
+    import gg.essential.api.commands.Command;
+    import gg.essential.api.commands.DefaultHandler;
+    import gg.essential.api.EssentialAPI;
+
+    public class MyCommand extends Command {
+        
+        public MyCommand() {
+            super("mycommand");
+        }
+        
+        @DefaultHandler
+        public void handle() {
+            // Send a notification when command is executed
+            EssentialAPI.getNotifications().push(
+                "My Mod",
+                "Command executed successfully!"
+            );
+        }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Registering the command
+
+Register your command during mod initialization:
+
+<Tabs>
+  <Tab title="Kotlin">
+    ```kotlin ModInitializer.kt
+    import gg.essential.api.EssentialAPI
+    import net.minecraftforge.fml.common.Mod
+    import net.minecraftforge.fml.common.event.FMLInitializationEvent
+
+    @Mod(modid = "mymod")
+    class MyMod {
+        
+        @Mod.EventHandler
+        fun init(event: FMLInitializationEvent) {
+            // Register the command
+            MyCommand.register()
+            
+            // Or register directly:
+            // EssentialAPI.getCommandRegistry().registerCommand(MyCommand)
+        }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Java">
+    ```java MyMod.java
+    import gg.essential.api.EssentialAPI;
+    import net.minecraftforge.fml.common.Mod;
+    import net.minecraftforge.fml.common.event.FMLInitializationEvent;
+
+    @Mod(modId = "mymod")
+    public class MyMod {
+        
+        @Mod.EventHandler
+        public void init(FMLInitializationEvent event) {
+            // Register the command
+            new MyCommand().register();
+        }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Testing your integration
+
+<Steps>
+  <Step title="Build your mod">
+    Run `./gradlew build` to compile your mod
+  </Step>
+  
+  <Step title="Launch Minecraft">
+    Start Minecraft with your mod and Essential installed
+  </Step>
+  
+  <Step title="Test the command">
+    In-game, type `/mycommand` and press Enter. You should see a notification appear!
+  </Step>
+</Steps>
+
+## Core API components
+
+Essential's API is accessed through the `EssentialAPI` class, which provides:
+
+### EssentialAPI class
+
+The central access point for all Essential APIs:
+
+```java Essential API
+import gg.essential.api.EssentialAPI;
+
+// Get the API instance
+EssentialAPI api = EssentialAPI.getInstance();
+
+// Or use static convenience methods:
+EssentialAPI.getNotifications();
+EssentialAPI.getCommandRegistry();
+EssentialAPI.getGuiUtil();
+```
+
+### Available APIs
+
+<CardGroup cols={2}>
+  <Card title="Commands" icon="terminal">
+    Create commands with automatic argument parsing
+  </Card>
+  <Card title="Notifications" icon="bell">
+    Display beautiful in-game notifications
+  </Card>
+  <Card title="GUI utilities" icon="window">
+    Open screens and access GUI components
+  </Card>
+  <Card title="Minecraft utils" icon="cube">
+    Minecraft-specific utility functions
+  </Card>
+  <Card title="Mojang API" icon="user">
+    Interact with Mojang's player API
+  </Card>
+  <Card title="Web utilities" icon="globe">
+    HTTP utilities and trusted hosts
+  </Card>
+  <Card title="Dependency injection" icon="plug">
+    Modern DI system for clean architecture
+  </Card>
+  <Card title="Configuration" icon="gear">
+    Access Essential's internal settings
+  </Card>
+</CardGroup>
+
+## Common use cases
+
+### Sending notifications
+
+Display notifications to users without cluttering the chat:
+
+<Tabs>
+  <Tab title="Basic notification">
+    ```kotlin
+    EssentialAPI.getNotifications().push(
+        "Title",
+        "Message content"
+    )
+    ```
+  </Tab>
+  
+  <Tab title="With duration">
+    ```kotlin
+    EssentialAPI.getNotifications().push(
+        "Title",
+        "This notification stays for 6 seconds",
+        duration = 6f
+    )
+    ```
+  </Tab>
+  
+  <Tab title="With click action">
+    ```kotlin
+    EssentialAPI.getNotifications().push(
+        title = "Click me!",
+        message = "This notification does something when clicked",
+        action = {
+            println("Notification clicked!")
+            // Open a GUI, execute a command, etc.
+        }
+    )
+    ```
+  </Tab>
+  
+  <Tab title="Advanced configuration">
+    ```kotlin
+    EssentialAPI.getNotifications().push(
+        title = "Advanced Notification",
+        message = "Fully customized",
+        duration = 5f,
+        configure = {
+            // Set notification type (changes color)
+            type = NotificationType.WARNING
+            
+            // Trim long messages
+            trimMessage = true
+            
+            // Custom action
+            onAction = {
+                println("Clicked!")
+            }
+            
+            // Custom close callback
+            onClose = {
+                println("Notification closed")
+            }
+        }
+    )
+    ```
+  </Tab>
+</Tabs>
+
+### Creating commands with arguments
+
+Essential automatically parses and converts command arguments based on parameter types:
+
+<Tabs>
+  <Tab title="With required argument">
+    ```kotlin
+    object TeleportCommand : Command("teleport") {
+        
+        @DefaultHandler
+        fun handle(distance: Int) {
+            // User must provide an integer
+            // Usage: /teleport <distance>
+            EssentialAPI.getNotifications().push(
+                "Teleport",
+                "Teleporting $distance blocks!"
+            )
+        }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="With optional argument">
+    ```kotlin
+    object GreetCommand : Command("greet") {
+        
+        @DefaultHandler
+        fun handle(name: String?) {
+            // Name is optional (nullable type)
+            // Usage: /greet [name]
+            val message = if (name != null) {
+                "Hello, $name!"
+            } else {
+                "Hello!"
+            }
+            
+            EssentialAPI.getNotifications().push("Greet", message)
+        }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="With subcommands">
+    ```kotlin
+    object ConfigCommand : Command("config") {
+        
+        @DefaultHandler
+        fun handleDefault() {
+            EssentialAPI.getNotifications().push(
+                "Config",
+                "Use /config <reload|save>"
+            )
+        }
+        
+        @SubCommand("reload")
+        fun handleReload() {
+            // /config reload
+            EssentialAPI.getNotifications().push(
+                "Config",
+                "Configuration reloaded!"
+            )
+        }
+        
+        @SubCommand("save")
+        fun handleSave() {
+            // /config save
+            EssentialAPI.getNotifications().push(
+                "Config",
+                "Configuration saved!"
+            )
+        }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+<Info>
+  The Command API automatically generates usage messages when arguments are invalid. For example, if the user types `/teleport abc`, they'll see: `Usage: /teleport <distance>`
+</Info>
+
+### Opening GUI screens
+
+Use GuiUtil to safely open Minecraft screens:
+
+```kotlin
+import gg.essential.api.EssentialAPI
+import net.minecraft.client.gui.GuiScreen
+
+// Queue a screen to open
+EssentialAPI.getGuiUtil().openScreen(myCustomScreen)
+
+// Get the currently open screen
+val currentScreen = EssentialAPI.getGuiUtil().openedScreen()
+```
+
+### Using Mojang API utilities
+
+Essential provides utilities for interacting with Mojang's API:
+
+```kotlin
+import gg.essential.api.EssentialAPI
+import java.util.UUID
+
+val mojangAPI = EssentialAPI.getMojangAPI()
+
+// Get UUID from username
+val uuid: UUID? = mojangAPI.getUUIDFromUsername("Notch")
+
+// Get username from UUID
+val username: String? = mojangAPI.getUsernameFromUUID(uuid)
+
+// Get game profile
+val profile = mojangAPI.getProfile(uuid)
+```
+
+## Best practices
 
 <AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
+  <Accordion title="Use compileOnly for optional Essential dependency" icon="layer-group">
+    If you want your mod to work without Essential installed, use `compileOnly` in your dependencies and check if Essential is loaded before using the API:
     
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
+    ```kotlin
+    fun isEssentialLoaded(): Boolean {
+        return try {
+            Class.forName("gg.essential.api.EssentialAPI")
+            true
+        } catch (e: ClassNotFoundException) {
+            false
+        }
+    }
+    
+    if (isEssentialLoaded()) {
+        MyCommand.register()
+    }
+    ```
   </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
+  
+  <Accordion title="Leverage dependency injection" icon="plug">
+    For larger projects, use Essential's DI system for cleaner architecture:
     
-    <Tip>Your preview updates automatically as you edit files.</Tip>
+    ```kotlin
+    import gg.essential.api.EssentialAPI
+    import gg.essential.api.gui.Notifications
+    
+    class MyService(private val notifications: Notifications) {
+        fun doSomething() {
+            notifications.push("Title", "Message")
+        }
+    }
+    
+    // Get service via DI
+    val di = EssentialAPI.getDI()
+    val notifications = di.get<Notifications>()
+    val service = MyService(notifications)
+    ```
+  </Accordion>
+  
+  <Accordion title="Handle command errors gracefully" icon="shield-halved">
+    Always validate command input and provide helpful feedback:
+    
+    ```kotlin
+    @DefaultHandler
+    fun handle(amount: Int) {
+        if (amount <= 0) {
+            EssentialAPI.getNotifications().push(
+                title = "Error",
+                message = "Amount must be positive!",
+                configure = { type = NotificationType.ERROR }
+            )
+            return
+        }
+        
+        // Process valid amount...
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Use notification types appropriately" icon="palette">
+    Choose the right notification type for better user experience:
+    
+    - `GENERAL`: Default, neutral notifications
+    - `INFO`: Informational messages
+    - `WARNING`: Warnings that need attention
+    - `ERROR`: Error messages
+    - `DISCORD`: Discord-related notifications
   </Accordion>
 </AccordionGroup>
 
-### Step 2: Deploy your changes
+## API reference
+
+For detailed documentation on all available APIs, see:
+
+<CardGroup cols={2}>
+  <Card
+    title="Essential API"
+    icon="book"
+    href="/api/essential-api"
+  >
+    Core API documentation and reference
+  </Card>
+  <Card
+    title="Commands API"
+    icon="terminal"
+    href="/api/commands/overview"
+  >
+    Complete command creation guide
+  </Card>
+  <Card
+    title="GUI API"
+    icon="window"
+    href="/api/gui/overview"
+  >
+    GUI components and Elementa integration
+  </Card>
+  <Card
+    title="Utilities"
+    icon="wrench"
+    href="/api/utils/minecraft-utils"
+  >
+    Utility functions and helpers
+  </Card>
+</CardGroup>
+
+## Examples
+
+Here are some complete examples to help you get started:
 
 <AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
+  <Accordion title="Complete command with multiple argument types" icon="code">
+    ```kotlin CompleteCommand.kt
+    import gg.essential.api.commands.Command
+    import gg.essential.api.commands.DefaultHandler
+    import gg.essential.api.commands.SubCommand
+    import gg.essential.api.commands.DisplayName
+    import gg.essential.api.EssentialAPI
+    import gg.essential.api.gui.NotificationType
+
+    object ItemCommand : Command("item", autoHelpSubcommand = true) {
+        
+        @DefaultHandler
+        fun handleDefault() {
+            EssentialAPI.getNotifications().push(
+                "Item Command",
+                "Use /item give or /item list"
+            )
+        }
+        
+        @SubCommand("give")
+        fun handleGive(
+            @DisplayName("itemName") item: String,
+            @DisplayName("count") amount: Int?
+        ) {
+            val count = amount ?: 1
+            
+            if (count <= 0 || count > 64) {
+                EssentialAPI.getNotifications().push(
+                    title = "Error",
+                    message = "Amount must be between 1 and 64",
+                    configure = { type = NotificationType.ERROR }
+                )
+                return
+            }
+            
+            // Give item logic here...
+            
+            EssentialAPI.getNotifications().push(
+                title = "Item Given",
+                message = "Gave $count x $item",
+                configure = { type = NotificationType.INFO }
+            )
+        }
+        
+        @SubCommand("list")
+        fun handleList() {
+            // List items logic...
+            EssentialAPI.getNotifications().push(
+                "Items",
+                "Check chat for item list"
+            )
+        }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="GUI integration example" icon="window">
+    ```kotlin CustomGUI.kt
+    import gg.essential.api.EssentialAPI
+    import gg.essential.api.gui.EssentialGUI
+    import gg.essential.elementa.ElementaVersion
+    import gg.essential.elementa.components.UIText
+    import gg.essential.elementa.dsl.*
     
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
+    class MyCustomGUI : EssentialGUI(
+        ElementaVersion.V2,
+        "My Custom GUI",
+        discordActivityDescription = "Managing settings"
+    ) {
+        
+        init {
+            // Add content to the GUI
+            val text = UIText("Hello from Essential GUI!").constrain {
+                x = CenterConstraint()
+                y = CenterConstraint()
+            } childOf content
+        }
+    }
+    
+    // Open the GUI
+    fun openMyGUI() {
+        EssentialAPI.getGuiUtil().openScreen(MyCustomGUI())
+    }
+    ```
   </Accordion>
 </AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
 
 ## Next steps
 
-Now that you have your docs running, explore these key features:
-
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card
+    title="Build from source"
+    icon="hammer"
+    href="/building/setup"
+  >
+    Learn how to build Essential from source code
+  </Card>
+  <Card
+    title="Core concepts"
+    icon="book-open"
+    href="/concepts/architecture"
+  >
+    Understand Essential's architecture
+  </Card>
+  <Card
+    title="Join Discord"
+    icon="discord"
+    href="https://essential.gg/discord"
+  >
+    Get help and connect with other developers
+  </Card>
+  <Card
+    title="View source"
+    icon="github"
+    href="https://github.com/EssentialGG/Essential"
+  >
+    Explore the Essential source code
+  </Card>
 </CardGroup>
-
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>

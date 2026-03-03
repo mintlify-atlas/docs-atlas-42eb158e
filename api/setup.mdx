@@ -1,0 +1,306 @@
+---
+title: Setup
+description: Set up your Minecraft mod project to use the Essential API
+---
+
+This guide walks you through adding the Essential API to your mod project and making your first API call.
+
+## Prerequisites
+
+- A Minecraft mod project using Gradle
+- Basic knowledge of Kotlin or Java
+- Minecraft Forge or Fabric mod loader
+
+## Add the Dependency
+
+### Gradle Configuration
+
+Add the Essential repository and API dependency to your `build.gradle` or `build.gradle.kts` file.
+
+<CodeGroup>
+```kotlin build.gradle.kts
+repositories {
+    maven("https://repo.essential.gg/repository/maven-public")
+}
+
+dependencies {
+    // Replace {VERSION} with the Minecraft version (e.g., 1.8.9-forge, 1.20.1-fabric)
+    modApi("gg.essential:essential-{VERSION}:+")
+}
+```
+
+```groovy build.gradle
+repositories {
+    maven { url 'https://repo.essential.gg/repository/maven-public' }
+}
+
+dependencies {
+    // Replace {VERSION} with the Minecraft version (e.g., 1.8.9-forge, 1.20.1-fabric)
+    modApi 'gg.essential:essential-{VERSION}:+'
+}
+```
+</CodeGroup>
+
+<Info>
+The `+` version selector will always use the latest version. For production, pin to a specific version like `1.3.2` to ensure stability.
+</Info>
+
+### Version Compatibility
+
+Essential API is available for multiple Minecraft versions and mod loaders:
+
+- **Forge**: `1.8.9-forge`, `1.12.2-forge`, `1.16.5-forge`, `1.18.2-forge`, `1.19.4-forge`, `1.20.1-forge`
+- **Fabric**: `1.16.5-fabric`, `1.18.2-fabric`, `1.19.4-fabric`, `1.20.1-fabric`, `1.21-fabric`
+
+### Dependencies Included
+
+When you add Essential API, you get access to these libraries:
+
+<AccordionGroup>
+  <Accordion title="Kotlin Standard Library" icon="code">
+    - `kotlin-stdlib-jdk8`
+    - `kotlin-reflect`
+    - `kotlinx-coroutines-core` and `kotlinx-coroutines-jdk8`
+    - `kotlinx-serialization-core` and `kotlinx-serialization-json`
+  </Accordion>
+  
+  <Accordion title="Kodein DI" icon="sitemap">
+    Dependency injection framework (version 7.6.0) for managing instances
+  </Accordion>
+  
+  <Accordion title="Elementa" icon="window">
+    Modern GUI framework for Minecraft - create beautiful, reactive UIs
+  </Accordion>
+  
+  <Accordion title="Vigilance" icon="sliders">
+    Configuration GUI framework for mod settings
+  </Accordion>
+  
+  <Accordion title="UniversalCraft" icon="cube">
+    Cross-version Minecraft abstraction layer
+  </Accordion>
+</AccordionGroup>
+
+## Access the API
+
+Once the dependency is added, you can access the API in your code.
+
+### Method 1: Static Instance (Recommended for Java)
+
+Get the API instance using the static `getInstance()` method:
+
+<CodeGroup>
+```kotlin Kotlin
+import gg.essential.api.EssentialAPI
+
+class MyMod {
+    fun init() {
+        val api = EssentialAPI.getInstance()
+        
+        // Access API features
+        val notifications = api.notifications()
+        val commandRegistry = api.commandRegistry()
+        val guiUtil = api.guiUtil()
+    }
+}
+```
+
+```java Java
+import gg.essential.api.EssentialAPI;
+import gg.essential.api.gui.Notifications;
+import gg.essential.api.commands.CommandRegistry;
+
+public class MyMod {
+    public void init() {
+        EssentialAPI api = EssentialAPI.getInstance();
+        
+        // Access API features
+        Notifications notifications = api.notifications();
+        CommandRegistry commandRegistry = api.commandRegistry();
+        GuiUtil guiUtil = api.guiUtil();
+    }
+}
+```
+</CodeGroup>
+
+### Method 2: Static Helper Methods
+
+Use the static helper methods for quick access:
+
+<CodeGroup>
+```kotlin Kotlin
+import gg.essential.api.EssentialAPI
+
+val notifications = EssentialAPI.getNotifications()
+val commandRegistry = EssentialAPI.getCommandRegistry()
+val guiUtil = EssentialAPI.getGuiUtil()
+val minecraftUtil = EssentialAPI.getMinecraftUtil()
+val mojangAPI = EssentialAPI.getMojangAPI()
+val config = EssentialAPI.getConfig()
+```
+
+```java Java
+import gg.essential.api.EssentialAPI;
+
+Notifications notifications = EssentialAPI.getNotifications();
+CommandRegistry commandRegistry = EssentialAPI.getCommandRegistry();
+GuiUtil guiUtil = EssentialAPI.getGuiUtil();
+MinecraftUtils minecraftUtil = EssentialAPI.getMinecraftUtil();
+MojangAPI mojangAPI = EssentialAPI.getMojangAPI();
+EssentialConfig config = EssentialAPI.getConfig();
+```
+</CodeGroup>
+
+### Method 3: Dependency Injection (Kotlin Only)
+
+Use Kodein DI for cleaner dependency management:
+
+```kotlin
+import gg.essential.api.utils.get
+import gg.essential.api.gui.Notifications
+import gg.essential.api.commands.CommandRegistry
+import gg.essential.api.utils.GuiUtil
+import gg.essential.api.utils.MinecraftUtils
+
+class MyMod {
+    private val notifications: Notifications = get()
+    private val commandRegistry: CommandRegistry = get()
+    private val guiUtil: GuiUtil = get()
+    private val minecraftUtils: MinecraftUtils = get()
+    
+    fun init() {
+        notifications.push("Mod Loaded", "My mod has been initialized!")
+    }
+}
+```
+
+<Tip>
+The `get<T>()` function uses Kotlin's reified type parameters to automatically resolve the correct type from the DI container.
+</Tip>
+
+### Adding Your Own Types to DI
+
+You can extend Essential's DI system with your own modules:
+
+```kotlin
+import gg.essential.api.EssentialAPI
+import org.kodein.di.DI
+import org.kodein.di.bind
+import org.kodein.di.singleton
+
+class MyMod {
+    fun init() {
+        val di = EssentialAPI.getDI()
+        
+        di.addModule(DI.Module("mymod") {
+            bind<MyService>() with singleton { MyServiceImpl() }
+            bind<MyRepository>() with singleton { MyRepositoryImpl() }
+        })
+        
+        // Now you can retrieve your types via DI
+        val myService = get<MyService>()
+    }
+}
+```
+
+## Your First API Call
+
+Let's create a simple example that sends a notification when your mod loads:
+
+<CodeGroup>
+```kotlin Kotlin Example
+import gg.essential.api.EssentialAPI
+import net.minecraftforge.fml.common.Mod
+import net.minecraftforge.fml.common.event.FMLInitializationEvent
+
+@Mod(modid = "mymod", name = "My Mod", version = "1.0.0")
+class MyMod {
+    
+    @Mod.EventHandler
+    fun init(event: FMLInitializationEvent) {
+        val notifications = EssentialAPI.getNotifications()
+        
+        notifications.push(
+            "My Mod Loaded",
+            "Successfully integrated with Essential!"
+        )
+    }
+}
+```
+
+```java Java Example
+import gg.essential.api.EssentialAPI;
+import gg.essential.api.gui.Notifications;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.event.FMLInitializationEvent;
+
+@Mod(modid = "mymod", name = "My Mod", version = "1.0.0")
+public class MyMod {
+    
+    @Mod.EventHandler
+    public void init(FMLInitializationEvent event) {
+        Notifications notifications = EssentialAPI.getNotifications();
+        
+        notifications.push(
+            "My Mod Loaded",
+            "Successfully integrated with Essential!"
+        );
+    }
+}
+```
+</CodeGroup>
+
+## Verify Installation
+
+To verify that Essential API is properly set up:
+
+1. Build your mod with `./gradlew build`
+2. Run your mod in the development environment
+3. Check that:
+   - No compilation errors related to Essential classes
+   - Essential is loaded in the mods list
+   - Your API calls execute without exceptions
+
+<Check>
+If you see a notification from your mod, congratulations! You've successfully integrated the Essential API.
+</Check>
+
+## Common Issues
+
+<AccordionGroup>
+  <Accordion title="Class not found errors" icon="circle-exclamation">
+    Make sure you've added the Essential repository to your `repositories` block and that the version string matches your Minecraft version and mod loader.
+  </Accordion>
+  
+  <Accordion title="DI not initialized error" icon="circle-exclamation">
+    The DI system is initialized when Essential loads. Make sure Essential is installed and that you're not trying to access the API too early in the mod loading lifecycle. Use `FMLPostInitializationEvent` or later.
+  </Accordion>
+  
+  <Accordion title="Version conflicts" icon="circle-exclamation">
+    If you have version conflicts with Kotlin or other libraries, you can exclude them:
+    ```kotlin
+    modApi("gg.essential:essential-1.8.9-forge:+") {
+        exclude(group = "org.jetbrains.kotlin")
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+Now that you have Essential API set up, explore what you can build:
+
+<CardGroup cols={2}>
+  <Card title="Register Commands" icon="terminal" href="/api/commands/overview">
+    Create custom commands with powerful argument parsing
+  </Card>
+  <Card title="Send Notifications" icon="bell" href="/api/gui/notifications">
+    Display beautiful notifications to users
+  </Card>
+  <Card title="Build GUIs" icon="window" href="/api/gui/overview">
+    Create modern user interfaces with Elementa
+  </Card>
+  <Card title="Use Utilities" icon="toolbox" href="/api/utils/minecraft-utils">
+    Access Minecraft helpers and Mojang API integration
+  </Card>
+</CardGroup>
