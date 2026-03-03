@@ -1,0 +1,140 @@
+{
+  "projectType": "sdk-library",
+  "projectName": "Essential Mod",
+  "projectDescription": "Essential is a quality of life mod that boosts Minecraft Java Edition to the next level with an extensive developer API.",
+  "theme": "palm",
+  "primaryColor": "#5865F2",
+  "lightColor": "#7289DA",
+  "darkColor": "#4752C4",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Building",
+            "pages": [
+              "building/setup",
+              "building/essential-mod",
+              "building/essential-loader",
+              "building/essential-container",
+              "building/verification"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/architecture",
+              "concepts/multi-version",
+              "concepts/loader-stages",
+              "concepts/platforms"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "api/overview",
+              "api/setup"
+            ]
+          },
+          {
+            "group": "Core API",
+            "pages": [
+              "api/essential-api",
+              "api/dependency-injection"
+            ]
+          },
+          {
+            "group": "Commands",
+            "pages": [
+              "api/commands/overview",
+              "api/commands/creating-commands",
+              "api/commands/arguments",
+              "api/commands/subcommands",
+              "api/commands/registry"
+            ]
+          },
+          {
+            "group": "GUI",
+            "pages": [
+              "api/gui/overview",
+              "api/gui/notifications",
+              "api/gui/components",
+              "api/gui/elementa"
+            ]
+          },
+          {
+            "group": "Utilities",
+            "pages": [
+              "api/utils/minecraft-utils",
+              "api/utils/gui-util",
+              "api/utils/mojang-api",
+              "api/utils/web-util",
+              "api/utils/multithreading"
+            ]
+          },
+          {
+            "group": "Other APIs",
+            "pages": [
+              "api/cosmetics",
+              "api/config",
+              "api/onboarding"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Resources",
+        "groups": [
+          {
+            "group": "Additional Info",
+            "pages": [
+              "resources/license",
+              "resources/ci",
+              "resources/changelog",
+              "resources/support"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Comprehensive developer API for Minecraft mods",
+    "Command system with automatic argument parsing",
+    "GUI framework with Elementa components",
+    "Notification system",
+    "Multi-version support (1.8.9 to 1.21.x)",
+    "Cross-loader compatibility (Forge, Fabric, NeoForge)",
+    "Cosmetics rendering API",
+    "Dependency injection system",
+    "Mojang API utilities"
+  ],
+  "publicApiSurface": [
+    "EssentialAPI.getInstance()",
+    "Command",
+    "CommandRegistry.registerCommand()",
+    "Notifications",
+    "EssentialComponentFactory",
+    "GuiUtil",
+    "MinecraftUtils",
+    "MojangAPI",
+    "DI (Dependency Injection)",
+    "EssentialConfig",
+    "RenderCosmetic",
+    "OnboardingData"
+  ]
+}
